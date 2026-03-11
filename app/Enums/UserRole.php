@@ -7,17 +7,35 @@ enum UserRole: string
     case ADMIN   = 'admin';
     case VENDEUR = 'vendeur';
 
-    public function canSeePrixAchat(): bool
+    public function label(): string
+    {
+        return match ($this) {
+            self::ADMIN   => 'Administrateur',
+            self::VENDEUR => 'Vendeur',
+        };
+    }
+
+    public function canSeePurchasePrice(): bool
     {
         return $this === self::ADMIN;
     }
 
-    public function canAnnulerVente(): bool
+    public function canSeeProfit(): bool
     {
         return $this === self::ADMIN;
     }
 
-    public function canAjusterStock(): bool
+    public function canCancelSale(): bool
+    {
+        return $this === self::ADMIN;
+    }
+
+    public function canAdjustStock(): bool
+    {
+        return $this === self::ADMIN;
+    }
+
+    public function canManageUsers(): bool
     {
         return $this === self::ADMIN;
     }

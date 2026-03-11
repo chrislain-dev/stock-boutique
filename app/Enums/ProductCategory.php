@@ -6,22 +6,31 @@ enum ProductCategory: string
 {
     case TELEPHONE  = 'telephone';
     case PC         = 'pc';
-    case TABLETTE   = 'tablette';
-    case ACCESSOIRE = 'accessoire';
+    case TABLET     = 'tablet';
+    case ACCESSORY  = 'accessory';
 
     public function label(): string
     {
         return match ($this) {
-            self::TELEPHONE  => 'Téléphone',
-            self::PC         => 'PC / Laptop',
-            self::TABLETTE   => 'Tablette',
-            self::ACCESSOIRE => 'Accessoire',
+            self::TELEPHONE => 'Téléphone',
+            self::PC        => 'PC / Laptop',
+            self::TABLET    => 'Tablette',
+            self::ACCESSORY => 'Accessoire',
         };
     }
 
     public function isSerialized(): bool
     {
-        // Les accessoires ne sont PAS sérialisés par défaut
-        return $this !== self::ACCESSOIRE;
+        return $this !== self::ACCESSORY;
+    }
+
+    public function icon(): string
+    {
+        return match ($this) {
+            self::TELEPHONE => 'device-phone-mobile',
+            self::PC        => 'computer-desktop',
+            self::TABLET    => 'device-tablet',
+            self::ACCESSORY => 'puzzle-piece',
+        };
     }
 }
