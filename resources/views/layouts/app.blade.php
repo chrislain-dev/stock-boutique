@@ -180,6 +180,8 @@
 
     </x-mary-main>
 
+    <x-mary-toast />
+
     @livewireScripts
 </body>
 </html>
