@@ -1,0 +1,83 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('product_model_id')->constrained()->restrictOnDelete();
+
+            // ─── Identification (serialized products only) ───────
+            $table->string('imei')->unique()->nullable()
+                ->comment('IMEI pour les téléphones');
+            $table->string('serial_number')->unique()->nullable()
+                ->comment('Numéro de série pour PC/tablettes');
+
+            // ─── State (finite state machine) ────────────────────
+            $table->enum('state', [
+                'available',
+                'sold',
+                'reserved',
+                'returned',
+                'defective',
+                'in_repair',
+            ])->default('available');
+
+            $table->enum('location', [
+                'store',
+                'transit',
+                'client',
+                'reseller',
+                'repair_shop',
+            ])->default('store');
+
+            // ─── Physical condition ──────────────────────────────
+            $table->enum('condition', [
+                'sealed',        // Scellé (neuf jamais ouvert)
+                'refurbished',   // Reconditionné
+                'used',          // Occasion
+                'defective',     // Défectueux
+            ])->default('sealed');
+            $table->text('defects')->nullable();
+
+            // ─── Prices (specific to this unit) ──────────────────
+            $table->decimal('purchase_price', 10, 2)
+                ->comment('Prix d\'achat réel de cette unité');
+            $table->decimal('client_price', 10, 2)
+                ->comment('Prix de vente pour les clients');
+            $table->decimal('reseller_price', 10, 2)
+                ->comment('Prix de vente pour les revendeurs');
+
+            // ─── Purchase info ───────────────────────────────────
+            $table->date('purchase_date')->nullable();
+            $table->string('supplier')->nullable();
+            $table->text('notes')->nullable();
+
+            // ─── Traceability ────────────────────────────────────
+            $table->foreignId('created_by')->nullable()
+                ->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()
+                ->constrained('users')->nullOnDelete();
+
+            $table->timestamps();
+            $table->softDeletes();
+
+            // ─── Indexes ─────────────────────────────────────────
+            $table->index(['product_model_id', 'state', 'location']);
+            $table->index('state');
+            $table->index('location');
+            $table->index('purchase_date');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('products');
+    }
+};
