@@ -6,6 +6,25 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* ─── Fonts ─────────────────────────────────────────────── */
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* ─── Couleurs du thème boutique ────────────────────────── */
+    /* Ces valeurs sont overridées par les CSS vars injectées    */
+    /* via le composant Blade <x-theme-vars />                   */
+    --color-primary:       var(--boutique-primary, #6366f1);
+    --color-primary-dark:  var(--boutique-primary-dark, #4f46e5);
+    --color-primary-light: var(--boutique-primary-light, #a5b4fc);
+    --color-secondary:     var(--boutique-secondary, #0ea5e9);
+    --color-accent:        var(--boutique-accent, #f59e0b);
+    --color-sidebar-bg:    var(--boutique-sidebar-bg, #1e1b4b);
+    --color-sidebar-text:  var(--boutique-sidebar-text, #e0e7ff);
+
+    /* ─── Couleurs sémantiques (états produits, paiements) ───── */
+    --color-success:  #22c55e;
+    --color-warning:  #f59e0b;
+    --color-danger:   #ef4444;
+    --color-info:     #0ea5e9;
+    --color-muted:    #94a3b8;
 }
