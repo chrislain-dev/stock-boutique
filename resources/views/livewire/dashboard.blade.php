@@ -1,200 +1,216 @@
-<div>
-    {{-- Header --}}
-    <x-mary-header
-        title="Dashboard"
-        subtitle="Bonjour {{ auth()->user()->name }} 👋"
-    >
-        @if(auth()->user()->isAdmin())
-        <x-slot:actions>
-            <x-mary-select
-                wire:model.live="period"
-                :options="[
-                    ['id' => 'day',      'name' => 'Aujourd\'hui'],
-                    ['id' => 'week',     'name' => 'Cette semaine'],
-                    ['id' => 'month',    'name' => 'Ce mois'],
-                    ['id' => 'quarter',  'name' => 'Ce trimestre'],
-                    ['id' => 'semester', 'name' => 'Ce semestre'],
-                    ['id' => 'year',     'name' => 'Cette année'],
-                ]"
-                class="select-sm w-40"
-            />
-        </x-slot:actions>
-        @endif
-    </x-mary-header>
+<div x-data x-init="initChart(@js($chartData))">
 
-    {{-- ── ADMIN ─────────────────────────────────────────── --}}
-    @if(auth()->user()->isAdmin())
+    <x-mary-header title="Dashboard" subtitle="{{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}" icon="o-home" />
 
-        {{-- Stats cards --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {{-- KPIs --}}
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <x-mary-card class="bg-primary/10 border-0">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">CA Aujourd'hui</p>
+            <p class="text-2xl font-bold text-primary mt-1">
+                {{ number_format($kpis['caJour'], 0, ',', ' ') }}
+                <span class="text-sm font-normal">{{ config('boutique.devise_symbole') }}</span>
+            </p>
+        </x-mary-card>
 
-            <x-mary-stat
-                title="Chiffre d'affaires"
-                :value="number_format($stats['revenue'] ?? 0, 0, ',', ' ') . ' ' . config('boutique.devise')"
-                icon="o-banknotes"
-                color="text-success"
-            />
+        <x-mary-card class="bg-success/10 border-0">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">CA Ce mois</p>
+            <p class="text-2xl font-bold text-success mt-1">
+                {{ number_format($kpis['caMois'], 0, ',', ' ') }}
+                <span class="text-sm font-normal">{{ config('boutique.devise_symbole') }}</span>
+            </p>
+        </x-mary-card>
 
-            <x-mary-stat
-                title="Bénéfice"
-                :value="number_format($stats['profit'] ?? 0, 0, ',', ' ') . ' ' . config('boutique.devise')"
-                icon="o-arrow-trending-up"
-                color="text-primary"
-            />
+        <x-mary-card class="bg-info/10 border-0">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Ventes aujourd'hui</p>
+            <p class="text-2xl font-bold text-info mt-1">{{ $kpis['ventesJour'] }}</p>
+        </x-mary-card>
 
-            <x-mary-stat
-                title="Ventes"
-                :value="$stats['sales_count'] ?? 0"
-                icon="o-shopping-bag"
-                color="text-info"
-            />
+        <x-mary-card class="bg-warning/10 border-0">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Stock disponible</p>
+            <p class="text-2xl font-bold text-warning mt-1">{{ $kpis['stockDispo'] }}</p>
+        </x-mary-card>
 
-            <x-mary-stat
-                title="Unités vendues"
-                :value="$stats['units_sold'] ?? 0"
-                icon="o-cube"
-                color="text-secondary"
-            />
+        <x-mary-card class="{{ $kpis['creances'] > 0 ? 'bg-error/10' : 'bg-base-200' }} border-0">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Créances totales</p>
+            <p class="text-2xl font-bold {{ $kpis['creances'] > 0 ? 'text-error' : 'text-gray-400' }} mt-1">
+                {{ number_format($kpis['creances'], 0, ',', ' ') }}
+                <span class="text-sm font-normal">{{ config('boutique.devise_symbole') }}</span>
+            </p>
+        </x-mary-card>
+    </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {{-- Graphique CA 7 jours --}}
+        <div class="lg:col-span-2">
+            <x-mary-card title="CA des 7 derniers jours">
+                <canvas id="caChart" height="120"></canvas>
+            </x-mary-card>
         </div>
 
-        {{-- Graphique + Stock bas --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-
-            {{-- Graphique ventes --}}
-            <div class="lg:col-span-2">
-                <x-mary-card title="Évolution des ventes">
-                    <x-slot:menu>
-                        <x-mary-select
-                            wire:model.live="chartPeriod"
-                            :options="[
-                                ['id' => 'week',  'name' => 'Semaine'],
-                                ['id' => 'month', 'name' => 'Mois'],
-                                ['id' => 'year',  'name' => 'Année'],
-                            ]"
-                            class="select-xs w-28"
-                        />
-                    </x-slot:menu>
-
-                    @if(!empty($chartData))
-                    <div class="h-48 flex items-end gap-2 pt-4">
-                        @php $max = max(array_column($chartData, 'amount')) ?: 1; @endphp
-                        @foreach($chartData as $point)
-                        <div class="flex-1 flex flex-col items-center gap-1">
-                            <span class="text-xs text-gray-400">
-                                {{ number_format($point['amount'] / 1000, 0) }}k
-                            </span>
-                            <div
-                                class="w-full rounded-t-md bg-primary transition-all duration-500"
-                                style="height: {{ max(4, ($point['amount'] / $max) * 160) }}px; opacity: 0.85"
-                            ></div>
-                            <span class="text-xs text-gray-500 truncate w-full text-center">
-                                {{ $point['label'] }}
-                            </span>
-                        </div>
-                        @endforeach
-                    </div>
-                    @else
-                    <x-mary-alert title="Aucune donnée" icon="o-information-circle" class="alert-info" />
-                    @endif
-                </x-mary-card>
+        {{-- Top produits --}}
+        <x-mary-card title="Top 5 produits (ce mois)">
+            @forelse($topProducts as $i => $p)
+            <div class="flex items-center gap-3 py-2 {{ !$loop->last ? 'border-b border-base-200' : '' }}">
+                <span class="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center font-bold">
+                    {{ $i + 1 }}
+                </span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate">{{ $p['product'] }}</p>
+                    <p class="text-xs text-gray-400">{{ $p['qty'] }} vendu(s)</p>
+                </div>
+                <span class="text-sm font-bold text-success whitespace-nowrap">
+                    {{ number_format($p['ca'], 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}
+                </span>
             </div>
+            @empty
+            <p class="text-sm text-gray-400 text-center py-4">Aucune vente ce mois.</p>
+            @endforelse
+        </x-mary-card>
+    </div>
 
-            {{-- Stock bas --}}
-            <x-mary-card title="Stock bas" icon="o-exclamation-triangle">
-                @forelse($lowStockProducts as $product)
-                <div class="flex items-center justify-between py-2 border-b border-base-200 last:border-0">
-                    <div>
-                        <p class="text-sm font-medium">{{ $product->full_name }}</p>
-                        <p class="text-xs text-gray-400">Min: {{ $product->stock_minimum }}</p>
-                    </div>
-                    <x-mary-badge
-                        :value="$product->quantity_stock"
-                        :class="$product->quantity_stock == 0 ? 'badge-error' : 'badge-warning'"
-                    />
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {{-- Dernières ventes --}}
+        <div class="lg:col-span-2">
+            <x-mary-card title="Dernières ventes">
+                <div class="overflow-x-auto">
+                    <table class="table table-sm w-full">
+                        <thead>
+                            <tr class="text-xs text-gray-400">
+                                <th>Réf</th>
+                                <th>Client</th>
+                                <th>Vendeur</th>
+                                <th class="text-right">Montant</th>
+                                <th>Statut</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($lastSales as $sale)
+                            <tr class="hover cursor-pointer" onclick="window.location='{{ route('sales.show', $sale) }}'">
+                                <td class="font-mono text-xs">{{ $sale->reference }}</td>
+                                <td class="text-sm">
+                                    @if($sale->customer_type === 'reseller')
+                                        {{ $sale->reseller?->name ?? '—' }}
+                                    @else
+                                        {{ $sale->customer_name ?: 'Anonyme' }}
+                                    @endif
+                                </td>
+                                <td class="text-xs text-gray-400">{{ $sale->createdBy?->name ?? '—' }}</td>
+                                <td class="text-right font-medium text-sm">
+                                    {{ number_format($sale->total_amount, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}
+                                </td>
+                                <td>
+                                    @php
+                                        $status = $sale->payment_status instanceof \App\Enums\PaymentStatus
+                                            ? $sale->payment_status
+                                            : \App\Enums\PaymentStatus::from($sale->payment_status);
+                                    @endphp
+                                    <x-mary-badge
+                                        value="{{ $status->label() }}"
+                                        class="badge-xs badge-{{ $status->color() }}"
+                                    />
+                                </td>
+                                <td class="text-xs text-gray-400">{{ $sale->created_at->diffForHumans() }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-gray-400 py-4">Aucune vente.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-                @empty
-                <x-mary-alert title="Aucun stock bas" icon="o-check-circle" class="alert-success" />
-                @endforelse
+                <div class="mt-3 text-right">
+                    <a href="{{ route('sales.index') }}" class="text-sm text-primary hover:underline">
+                        Voir toutes les ventes →
+                    </a>
+                </div>
             </x-mary-card>
-
         </div>
 
-    {{-- ── VENDEUR ──────────────────────────────────────── --}}
-    @else
+        {{-- Alertes stock --}}
+        <x-mary-card title="Alertes stock">
+            @if($alerts['enReparation'] > 0)
+            <div class="alert alert-warning py-2 mb-3">
+                <x-mary-icon name="o-wrench-screwdriver" class="w-4 h-4" />
+                <span class="text-sm">{{ $alerts['enReparation'] }} produit(s) en réparation</span>
+            </div>
+            @endif
 
-        {{-- Stats vendeur --}}
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <x-mary-stat
-                title="Mes ventes du jour"
-                :value="$stats['sales_count'] ?? 0"
-                icon="o-shopping-bag"
-                color="text-primary"
-            />
-            <x-mary-stat
-                title="Unités vendues"
-                :value="$stats['units_sold'] ?? 0"
-                icon="o-cube"
-                color="text-info"
-            />
-        </div>
+            @if($alerts['defectueux'] > 0)
+            <div class="alert alert-error py-2 mb-3">
+                <x-mary-icon name="o-exclamation-triangle" class="w-4 h-4" />
+                <span class="text-sm">{{ $alerts['defectueux'] }} produit(s) défectueux</span>
+            </div>
+            @endif
 
-        {{-- Stock bas + Créances --}}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            @if(count($alerts['stockBas']) > 0)
+            <p class="text-xs font-semibold text-gray-400 uppercase mb-2">Stock bas (< 2)</p>
+            @foreach($alerts['stockBas'] as $item)
+            <div class="flex justify-between items-center py-1 border-b border-base-200 last:border-0">
+                <span class="text-sm truncate">{{ $item->product }}</span>
+                <span class="badge badge-sm {{ $item->qty == 0 ? 'badge-error' : 'badge-warning' }}">
+                    {{ $item->qty }}
+                </span>
+            </div>
+            @endforeach
+            @else
+            <div class="alert alert-success py-2">
+                <x-mary-icon name="o-check-circle" class="w-4 h-4" />
+                <span class="text-sm">Stock OK</span>
+            </div>
+            @endif
 
-            <x-mary-card title="Alertes stock bas" icon="o-exclamation-triangle">
-                @forelse($lowStockProducts as $product)
-                <div class="flex items-center justify-between py-2 border-b border-base-200 last:border-0">
-                    <p class="text-sm font-medium">{{ $product->full_name }}</p>
-                    <x-mary-badge
-                        :value="$product->quantity_stock"
-                        :class="$product->quantity_stock == 0 ? 'badge-error' : 'badge-warning'"
-                    />
-                </div>
-                @empty
-                <x-mary-alert title="Aucun stock bas" class="alert-success" />
-                @endforelse
-            </x-mary-card>
-
-            <x-mary-card title="Revendeurs avec créances" icon="o-users">
-                @forelse($resellersWithDebt as $reseller)
-                <div class="flex items-center justify-between py-2 border-b border-base-200 last:border-0">
-                    <div>
-                        <p class="text-sm font-medium">{{ $reseller->name }}</p>
-                        <p class="text-xs text-gray-400">{{ $reseller->phone }}</p>
-                    </div>
-                    <x-mary-badge
-                        value="{{ number_format($reseller->solde_du, 0, ',', ' ') }} {{ config('boutique.devise') }}"
-                        class="badge-error"
-                    />
-                </div>
-                @empty
-                <x-mary-alert title="Aucune créance" class="alert-success" />
-                @endforelse
-            </x-mary-card>
-
-        </div>
-
-    @endif
-
-    {{-- Dernières ventes (commun) --}}
-    <x-mary-card title="Dernières ventes" icon="o-clock">
-        <x-mary-table
-            :headers="[
-                ['key' => 'reference',      'label' => 'Référence'],
-                ['key' => 'customer',       'label' => 'Client'],
-                ['key' => 'total_amount',   'label' => 'Montant'],
-                ['key' => 'payment_status', 'label' => 'Paiement'],
-                ['key' => 'created_at',     'label' => 'Date'],
-            ]"
-            :rows="$recentSales->map(fn($s) => [
-                'reference'      => $s->reference,
-                'customer'       => $s->reseller?->name ?? $s->customer_name ?? 'Client anonyme',
-                'total_amount'   => number_format($s->total_amount, 0, ',', ' ') . ' ' . config('boutique.devise'),
-                'payment_status' => $s->payment_status->label(),
-                'created_at'     => $s->created_at->format('d/m/Y H:i'),
-            ])"
-        />
-    </x-mary-card>
-
+            <div class="mt-3 text-right">
+                <a href="{{ route('products.index') }}" class="text-sm text-primary hover:underline">
+                    Gérer le stock →
+                </a>
+            </div>
+        </x-mary-card>
+    </div>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+function initChart(data) {
+    const ctx = document.getElementById('caChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'CA ({{ config('boutique.devise_symbole') }})',
+                data: data.values,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#6366f1',
+                pointRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.parsed.y.toLocaleString('fr') + ' {{ config('boutique.devise_symbole') }}'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: val => val.toLocaleString('fr')
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+@endpush

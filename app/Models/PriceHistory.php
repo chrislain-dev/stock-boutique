@@ -9,6 +9,8 @@ class PriceHistory extends Model
 {
     const UPDATED_AT = null;
 
+    protected $table = 'price_history';
+
     protected $fillable = [
         'product_model_id',
         'product_id',

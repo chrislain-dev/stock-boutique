@@ -37,14 +37,10 @@ return new class extends Migration
                 'repair_shop',
             ])->default('store');
 
-            // ─── Physical condition ──────────────────────────────
-            $table->enum('condition', [
-                'sealed',        // Scellé (neuf jamais ouvert)
-                'refurbished',   // Reconditionné
-                'used',          // Occasion
-                'defective',     // Défectueux
-            ])->default('sealed');
-            $table->text('defects')->nullable();
+            // ─── Physical condition ──────────────────────────────────
+            $table->text('defects')->nullable()
+                ->comment('Défauts constatés sur cette unité spécifique');
+            $table->text('notes')->nullable();
 
             // ─── Prices (specific to this unit) ──────────────────
             $table->decimal('purchase_price', 10, 2)
@@ -56,8 +52,8 @@ return new class extends Migration
 
             // ─── Purchase info ───────────────────────────────────
             $table->date('purchase_date')->nullable();
-            $table->string('supplier')->nullable();
-            $table->text('notes')->nullable();
+            $table->foreignId('supplier_id')->nullable()
+                ->constrained('suppliers')->nullOnDelete();
 
             // ─── Traceability ────────────────────────────────────
             $table->foreignId('created_by')->nullable()

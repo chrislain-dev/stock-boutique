@@ -7,6 +7,7 @@
     <x-theme-vars />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    @use('Illuminate\Support\Facades\Storage')
 </head>
 <body class="min-h-screen bg-base-200">
 
@@ -15,12 +16,21 @@
 
         <x-slot:brand>
             <div class="flex items-center gap-3 px-2">
+                @php $logo = \App\Models\Setting::get('boutique.logo'); @endphp
+                @if($logo)
+                <img
+                    src="{{ Storage::url($logo) }}"
+                    alt="Logo"
+                    class="w-9 h-9 object-contain rounded-xl"
+                />
+                @else
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-                     style="background-color: var(--boutique-primary)">
+                    style="background-color: var(--boutique-primary)">
                     <span class="text-white text-sm font-bold">
                         {{ strtoupper(substr(Setting::get('boutique.nom', config('boutique.nom')), 0, 2)) }}
                     </span>
                 </div>
+                @endif
                 <span class="font-bold text-base hidden lg:block">
                     {{ Setting::get('boutique.nom', config('boutique.nom')) }}
                 </span>
@@ -74,7 +84,8 @@
     <x-mary-main with-nav full-width>
 
         <x-slot:sidebar drawer="main-drawer" collapsible
-            class="bg-base-100 border-r border-base-200"
+            class="border-r border-base-200"
+            style="background-color: var(--boutique-sidebar-bg); color: var(--boutique-sidebar-text);"
         >
             <x-mary-menu activate-by-route>
 
@@ -183,5 +194,6 @@
     <x-mary-toast />
 
     @livewireScripts
+    @stack('scripts')
 </body>
 </html>

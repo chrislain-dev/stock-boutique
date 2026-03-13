@@ -59,3 +59,40 @@
 .mary-table-pagination button {
     @apply cursor-pointer
 }
+
+/* Sidebar dynamique */
+[data-sidebar] {
+    background-color: var(--boutique-sidebar-bg) !important;
+    color: var(--boutique-sidebar-text) !important;
+}
+
+[data-sidebar] a, [data-sidebar] button {
+    color: var(--boutique-sidebar-text) !important;
+}
+
+[data-sidebar] a:hover, [data-sidebar] button:hover {
+    background-color: color-mix(in srgb, var(--boutique-sidebar-bg) 80%, white) !important;
+}
+
+/* Primary dynamique */
+.btn-primary {
+    background-color: var(--boutique-primary) !important;
+    border-color: var(--boutique-primary) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--boutique-primary-dark) !important;
+    border-color: var(--boutique-primary-dark) !important;
+}
+
+.text-primary {
+    color: var(--boutique-primary) !important;
+}
+
+.bg-primary {
+    background-color: var(--boutique-primary) !important;
+}
+
+.border-primary {
+    border-color: var(--boutique-primary) !important;
+}

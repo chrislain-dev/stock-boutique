@@ -142,6 +142,17 @@
                 </div>
             @endscope
 
+            @scope('cell_condition', $model)
+                @if($model->condition)
+                    <x-mary-badge
+                        value="{{ $model->condition->label() }}"
+                        class="badge-sm badge-{{ $model->condition->color() }}"
+                    />
+                @else
+                    <span class="text-xs text-gray-400">—</span>
+                @endif
+            @endscope
+
             @scope('cell_category', $model)
                 <x-mary-badge value="{{ $model->category->label() }}" class="badge-outline badge-sm" />
             @endscope
@@ -210,6 +221,22 @@
                     placeholder="Choisir une catégorie"
                     required
                 />
+
+                {{-- Condition uniquement pour produits sérialisés --}}
+                @if(in_array($category, ['telephone', 'pc', 'tablet']))
+                <x-mary-select
+                    label="Condition"
+                    wire:model="condition"
+                    :options="[
+                        ['id' => 'sealed',      'name' => 'Scellé (neuf)'],
+                        ['id' => 'refurbished', 'name' => 'Reconditionné'],
+                        ['id' => 'used',        'name' => 'Occasion'],
+                    ]"
+                    placeholder="Choisir la condition"
+                    required
+                />
+                @endif
+
                 <x-mary-input label="Numéro de modèle" wire:model="model_number" placeholder="Ex: A2848" />
             </div>
 

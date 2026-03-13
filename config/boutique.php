@@ -15,6 +15,7 @@ return [
     'logo'       => env('BOUTIQUE_LOGO', null), // chemin dans storage/app/public
     'devise'     => env('BOUTIQUE_DEVISE', 'FCFA'),
     'devise_symbole' => env('BOUTIQUE_DEVISE_SYMBOLE', 'F'),
+    'message_recu' => env('BOUTIQUE_MESSAGE_RECU', 'Échanges sous 7 jours avec reçu.'),
 
     /*
     |--------------------------------------------------------------------------

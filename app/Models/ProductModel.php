@@ -18,6 +18,7 @@ class ProductModel extends Model
         'brand_id',
         'model_number',
         'category',
+        'condition',
         'description',
         'image_url',
         'is_serialized',
@@ -52,6 +53,7 @@ class ProductModel extends Model
 
     protected $casts = [
         'category'               => ProductCategory::class,
+        'condition'              => \App\Enums\ProductCondition::class,
         'is_serialized'          => 'boolean',
         'is_active'              => 'boolean',
         'ram_gb'                 => 'integer',
@@ -82,7 +84,7 @@ class ProductModel extends Model
 
     public function priceHistory(): HasMany
     {
-        return $this->hasMany(PriceHistory::class);
+        return $this->hasMany(PriceHistory::class, 'product_model_id', 'id');
     }
 
     // ─── Accesseurs ───────────────────────────────────────────
@@ -127,6 +129,35 @@ class ProductModel extends Model
     public function getIsLowStockAttribute(): bool
     {
         return $this->available_stock <= $this->stock_minimum;
+    }
+
+    public function getDisplayLabelAttribute(): string
+    {
+        $parts = [];
+
+        $parts[] = $this->brand->name . ' ' . $this->name;
+
+        if ($this->storage_gb) {
+            $parts[] = $this->storage_gb >= 1000
+                ? ($this->storage_gb / 1000) . 'TB'
+                : $this->storage_gb . 'GB';
+        }
+
+        if ($this->category->value === 'pc' && $this->ram_gb) {
+            $parts[] = $this->ram_gb . 'GB RAM';
+        }
+
+        if ($this->color) {
+            $parts[] = $this->color;
+        }
+
+        $label = implode(' ', $parts);
+
+        if ($this->condition) {
+            $label .= ' - ' . strtoupper($this->condition->label());
+        }
+
+        return $label;
     }
 
     // ─── Scopes ───────────────────────────────────────────────

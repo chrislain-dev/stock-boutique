@@ -16,6 +16,12 @@ return new class extends Migration
             $table->foreignId('brand_id')->constrained()->restrictOnDelete();
             $table->string('model_number')->nullable();
             $table->enum('category', ['telephone', 'pc', 'tablet', 'accessory']);
+            $table->enum('condition', [
+                'sealed',        // Scellé (neuf jamais ouvert)
+                'refurbished',   // Reconditionné
+                'used',          // Occasion
+                'defective',     // Défectueux
+            ])->default('sealed');
             $table->text('description')->nullable();
             $table->string('image_url')->nullable();
 
@@ -72,6 +78,7 @@ return new class extends Migration
             $table->index(['category', 'is_active']);
             $table->index(['brand_id', 'category']);
             $table->index('is_serialized');
+            $table->unique(['brand_id', 'name', 'storage_gb', 'ram_gb', 'condition'], 'unique_model_condition');
         });
     }
 

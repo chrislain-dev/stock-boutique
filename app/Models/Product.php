@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\ProductState;
 use App\Enums\ProductLocation;
-use App\Enums\ProductCondition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +20,6 @@ class Product extends Model
         'serial_number',
         'state',
         'location',
-        'condition',
         'defects',
         'purchase_price',
         'client_price',
@@ -36,7 +34,6 @@ class Product extends Model
     protected $casts = [
         'state'          => ProductState::class,
         'location'       => ProductLocation::class,
-        'condition'      => ProductCondition::class,
         'purchase_price' => 'decimal:2',
         'client_price'   => 'decimal:2',
         'reseller_price' => 'decimal:2',
@@ -71,7 +68,7 @@ class Product extends Model
 
     public function priceHistory(): HasMany
     {
-        return $this->hasMany(PriceHistory::class);
+        return $this->hasMany(PriceHistory::class, 'product_id', 'id');
     }
 
     public function saleItems(): HasMany
@@ -111,6 +108,11 @@ class Product extends Model
         return $this->imei ?? $this->serial_number ?? 'N/A';
     }
 
+    public function getConditionAttribute(): ?\App\Enums\ProductCondition
+    {
+        return $this->productModel?->condition;
+    }
+
     // ─── Méthodes métier ──────────────────────────────────────
 
     // Transition d'état sécurisée
@@ -138,10 +140,5 @@ class Product extends Model
     public function scopeByLocation($query, ProductLocation $location)
     {
         return $query->where('location', $location->value);
-    }
-
-    public function scopeByCondition($query, ProductCondition $condition)
-    {
-        return $query->where('condition', $condition->value);
     }
 }
