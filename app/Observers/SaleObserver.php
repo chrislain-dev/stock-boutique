@@ -3,6 +3,8 @@
 namespace App\Observers;
 
 use App\Models\Sale;
+use App\Models\User;
+use App\Notifications\NouvelleVente;
 use App\Services\ActivityLogService;
 
 class SaleObserver
@@ -15,6 +17,8 @@ class SaleObserver
             model: $sale,
             newValues: $sale->toArray(),
         );
+
+        User::admins()->each(fn($admin) => $admin->notify(new NouvelleVente($sale)));
     }
 
     public function updated(Sale $sale): void

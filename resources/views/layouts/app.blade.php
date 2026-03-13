@@ -39,7 +39,7 @@
 
         <x-slot:actions>
             {{-- Alerte stock bas --}}
-            <livewire:partials.stock-alert-badge />
+            <livewire:partials.notification-bell />
 
             {{-- User menu --}}
             <x-mary-dropdown>

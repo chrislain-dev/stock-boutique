@@ -80,7 +80,7 @@ class User extends Authenticatable
 
     public function scopeAdmins($query)
     {
-        return $query->where('role', UserRole::ADMIN->value);
+        return $query->where('role', UserRole::ADMIN->value)->where('is_active', true);
     }
 
     public function scopeVendeurs($query)
