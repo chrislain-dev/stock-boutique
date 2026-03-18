@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\ProductState;
 use App\Enums\ProductLocation;
-use App\Enums\ProductCondition;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +20,6 @@ class Product extends Model
         'serial_number',
         'state',
         'location',
-        'condition',
         'defects',
         'purchase_price',
         'client_price',
@@ -36,12 +34,56 @@ class Product extends Model
     protected $casts = [
         'state'          => ProductState::class,
         'location'       => ProductLocation::class,
-        'condition'      => ProductCondition::class,
         'purchase_price' => 'decimal:2',
         'client_price'   => 'decimal:2',
         'reseller_price' => 'decimal:2',
         'purchase_date'  => 'date',
     ];
+
+    // ─── Boot events ───────────────────────────────────────────
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Prevent deletion if product is sold or unavailable
+        static::deleting(function ($product) {
+            if ($product->state !== ProductState::AVAILABLE) {
+                throw new \Exception(
+                    "Impossible de supprimer un produit qui n'est pas disponible (État: {$product->state->value})"
+                );
+            }
+        });
+
+        // Validate prices on save
+        static::saving(function ($product) {
+            if ($product->purchase_price < 0 || $product->client_price < 0 || $product->reseller_price < 0) {
+                throw new \Exception('Les prix doivent être positifs.');
+            }
+
+            if ($product->client_price < $product->purchase_price) {
+                throw new \Exception('Le prix client doit être >= au prix d\'achat.');
+            }
+        });
+
+        // Validate state transition on update
+        static::updating(function ($product) {
+            $originalState = $product->getOriginal('state');
+            $newState = $product->state;
+
+            // getOriginal() peut retourner soit une string soit un Enum (selon le contexte)
+            if ($originalState instanceof ProductState) {
+                $originalStateEnum = $originalState;
+            } else {
+                $originalStateEnum = ProductState::tryFrom($originalState);
+            }
+
+            if ($originalStateEnum && $originalStateEnum !== $newState && !$originalStateEnum->canTransitionTo($newState)) {
+                throw new \Exception(
+                    "Transition d'état impossible : {$originalState} → {$newState->value}"
+                );
+            }
+        });
+    }
 
     // ─── Relations ────────────────────────────────────────────
     public function productModel(): BelongsTo
@@ -71,7 +113,7 @@ class Product extends Model
 
     public function priceHistory(): HasMany
     {
-        return $this->hasMany(PriceHistory::class);
+        return $this->hasMany(PriceHistory::class, 'product_id', 'id');
     }
 
     public function saleItems(): HasMany
@@ -111,6 +153,11 @@ class Product extends Model
         return $this->imei ?? $this->serial_number ?? 'N/A';
     }
 
+    public function getConditionAttribute(): ?\App\Enums\ProductCondition
+    {
+        return $this->productModel?->condition;
+    }
+
     // ─── Méthodes métier ──────────────────────────────────────
 
     // Transition d'état sécurisée
@@ -138,10 +185,5 @@ class Product extends Model
     public function scopeByLocation($query, ProductLocation $location)
     {
         return $query->where('location', $location->value);
-    }
-
-    public function scopeByCondition($query, ProductCondition $condition)
-    {
-        return $query->where('condition', $condition->value);
     }
 }

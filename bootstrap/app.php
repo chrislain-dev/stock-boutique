@@ -11,8 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // TODO: Fix Laravel 11 middleware alias syntax
+        // $middleware->alias('permission', App\Http\Middleware\CheckPermission::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Custom exception handling is configured in the Handler class
+        // If needed, additional renderers/reporters can be registered here
     })->create();

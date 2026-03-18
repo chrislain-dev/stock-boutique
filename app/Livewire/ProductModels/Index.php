@@ -6,6 +6,7 @@ use App\Enums\ProductCategory;
 use App\Models\Brand;
 use App\Models\ProductModel;
 use App\Services\ProductModelStatsService;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
@@ -29,6 +30,7 @@ class Index extends Component
     public ?int $brand_id       = null;
     public string $model_number = '';
     public string $category     = '';
+    public string $condition = '';
     public string $description  = '';
     public string $image_url    = '';
     public bool $is_serialized  = true;
@@ -78,7 +80,7 @@ class Index extends Component
         $rules = [
             'name'      => 'required|string|max:255',
             'brand_id'  => 'required|exists:brands,id',
-            'category'  => 'required|in:telephone,pc,tablet,accessory',
+            'category' => 'required|in:telephone,pc,tablet,accessory' . (auth()->user()->isAdmin() ? ',sextoys' : ''),
             'is_active' => 'boolean',
             'default_purchase_price'  => 'nullable|numeric|min:0',
             'default_client_price'    => 'nullable|numeric|min:0',
@@ -96,6 +98,12 @@ class Index extends Component
             $rules['stock_minimum']   = 'required|integer|min:0';
         }
 
+        if (in_array($this->category, ['telephone', 'pc', 'tablet'])) {
+            $rules['condition'] = 'required|in:sealed,refurbished,used';  // ← AJOUTER
+            $rules['ram_gb']     = 'nullable|integer|min:1';
+            $rules['storage_gb'] = 'nullable|integer|min:1';
+        }
+
         return $rules;
     }
 
@@ -103,6 +111,7 @@ class Index extends Component
         'name.required'         => 'Le nom est obligatoire.',
         'brand_id.required'     => 'La marque est obligatoire.',
         'category.required'     => 'La catégorie est obligatoire.',
+        'condition.required' => 'La condition est obligatoire.',
         'accessory_type.required' => 'Le type d\'accessoire est obligatoire.',
     ];
 
@@ -169,6 +178,7 @@ class Index extends Component
         $this->image_url              = $model->image_url ?? '';
         $this->is_serialized          = $model->is_serialized;
         $this->is_active              = $model->is_active;
+        $this->condition = $model->condition?->value ?? '';
         $this->color                  = $model->color ?? '';
         $this->ram_gb                 = $model->ram_gb;
         $this->storage_gb             = $model->storage_gb;
@@ -208,6 +218,7 @@ class Index extends Component
             'brand_id'                => $this->brand_id,
             'model_number'            => $this->model_number ?: null,
             'category'                => $this->category,
+            'condition'               => $this->condition ?: null,
             'description'             => $this->description ?: null,
             'image_url'               => $this->image_url ?: null,
             'is_serialized'           => $this->is_serialized,
@@ -257,15 +268,13 @@ class Index extends Component
                     'new_client_price'    => $this->default_client_price,
                     'new_reseller_price'  => $this->default_reseller_price,
                     'reason'              => 'Modification via interface',
-                    'created_by'          => auth()->id(),
+                    'created_by'          => Auth::id(),
                 ]);
             }
 
             $model->update($data);
-            $this->success('Modèle mis à jour.');
         } else {
             ProductModel::create($data);
-            $this->success('Modèle créé.');
         }
 
         $this->showModal = false;
@@ -306,6 +315,7 @@ class Index extends Component
             'brand_id',
             'model_number',
             'category',
+            'condition',
             'description',
             'image_url',
             'color',
@@ -342,6 +352,7 @@ class Index extends Component
     {
         return [
             ['key' => 'full_name',  'label' => 'Modèle',      'sortable' => false],
+            ['key' => 'condition',  'label' => 'Condition',   'sortable' => true],
             ['key' => 'category',   'label' => 'Catégorie',   'sortable' => true],
             ['key' => 'stock',      'label' => 'Stock',        'sortable' => false],
             ['key' => 'is_active',  'label' => 'Statut',       'sortable' => true],
@@ -352,7 +363,13 @@ class Index extends Component
     {
         $brands = Brand::active()->orderBy('name')->get();
 
+        $categories = collect(ProductCategory::cases())
+            ->when(!auth()->user()->isAdmin(), fn($c) => $c->filter(
+                fn($cat) => $cat !== ProductCategory::SEXTOYS
+            ))->values();
+
         $productModels = ProductModel::with('brand')
+            ->when(!auth()->user()->isAdmin(), fn($q) => $q->where('category', '!=', 'sextoys'))
             ->when(
                 $this->search,
                 fn($q) =>
@@ -380,7 +397,7 @@ class Index extends Component
             'productModels' => $productModels,
             'headers'       => $this->headers(),
             'brands'        => $brands,
-            'categories'    => ProductCategory::cases(),
+            'categories'    => $categories,
             'counts'        => $counts,
         ])->layout('layouts.app', ['title' => 'Modèles de produits']);
     }

@@ -40,7 +40,12 @@ class Setting extends Model
     {
         static::updateOrCreate(
             ['key' => $key],
-            ['value' => $value]
+            [
+                'value' => $value,
+                'label' => $key, // fallback si pas encore en DB
+                'type'  => 'string',
+                'group' => explode('.', $key)[0] ?? 'general',
+            ]
         );
         Cache::forget("setting_{$key}");
     }

@@ -44,6 +44,33 @@ class Purchase extends Model
         static::creating(function (Purchase $purchase) {
             $purchase->reference = static::generateReference();
         });
+
+        static::saving(function (Purchase $purchase) {
+            // Validation: paid_amount must not exceed total_amount
+            if ($purchase->paid_amount > $purchase->total_amount) {
+                throw new \Exception(
+                    "Le montant payé ({$purchase->paid_amount}) ne peut pas dépasser le montant total ({$purchase->total_amount})."
+                );
+            }
+
+            // Validation: paid_amount and total_amount must be non-negative
+            if ($purchase->paid_amount < 0) {
+                throw new \Exception('Le montant payé doit être positif ou zéro.');
+            }
+
+            if ($purchase->total_amount <= 0) {
+                throw new \Exception('Le montant total doit être positif.');
+            }
+
+            // Verify reference uniqueness
+            $existingCount = static::where('reference', $purchase->reference)
+                ->where('id', '!=', $purchase->id ?? 0)
+                ->count();
+
+            if ($existingCount > 0) {
+                throw new \Exception("La référence d'achat '{$purchase->reference}' existe déjà.");
+            }
+        });
     }
 
     // ─── Relations ────────────────────────────────────────────

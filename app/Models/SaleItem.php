@@ -29,6 +29,25 @@ class SaleItem extends Model
         'line_total'               => 'decimal:2',
     ];
 
+    // ─── Boot ──────────────────────────────────────────────────
+    protected static function booted(): void
+    {
+        static::saving(function (SaleItem $item) {
+            if ($item->quantity <= 0) {
+                throw new \Exception('La quantité doit être au moins 1.');
+            }
+
+            if ($item->unit_price <= 0) {
+                throw new \Exception('Le prix unitaire doit être positif.');
+            }
+
+            // Auto-calculate line_total if needed
+            if (!$item->line_total || $item->isDirty(['quantity', 'unit_price', 'discount'])) {
+                $item->line_total = ($item->quantity * $item->unit_price) -  ($item->discount ?? 0);
+            }
+        });
+    }
+
     // ─── Relations ────────────────────────────────────────────
     public function sale(): BelongsTo
     {

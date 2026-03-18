@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -6,35 +7,23 @@
 @source '../**/*.js';
 
 @theme {
-    /* ─── Fonts ─────────────────────────────────────────────── */
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
 
-    /* ─── Couleurs du thème boutique ────────────────────────── */
-    /* Ces valeurs sont overridées par les CSS vars injectées    */
-    /* via le composant Blade <x-theme-vars />                   */
-    --color-primary:       var(--boutique-primary, #6366f1);
-    --color-primary-dark:  var(--boutique-primary-dark, #4f46e5);
-    --color-primary-light: var(--boutique-primary-light, #a5b4fc);
+    --color-primary:       var(--boutique-primary, #18181b);
+    --color-primary-dark:  var(--boutique-primary-dark, #09090b);
+    --color-primary-light: var(--boutique-primary-light, #71717a);
     --color-secondary:     var(--boutique-secondary, #0ea5e9);
     --color-accent:        var(--boutique-accent, #f59e0b);
-    --color-sidebar-bg:    var(--boutique-sidebar-bg, #1e1b4b);
-    --color-sidebar-text:  var(--boutique-sidebar-text, #e0e7ff);
+    --color-sidebar-bg:    var(--boutique-sidebar-bg, #18181b);
+    --color-sidebar-text:  var(--boutique-sidebar-text, #a1a1aa);
 
-    /* ─── Couleurs sémantiques (états produits, paiements) ───── */
-    --color-success:  #22c55e;
-    --color-warning:  #f59e0b;
-    --color-danger:   #ef4444;
-    --color-info:     #0ea5e9;
-    --color-muted:    #94a3b8;
+    --color-success:  #16a34a;
+    --color-warning:  #d97706;
+    --color-danger:   #dc2626;
+    --color-info:     #0284c7;
+    --color-muted:    #71717a;
 }
-
-
-
-/**
-    The lines above are intact.
-    The lines below were added by maryUI installer.
-*/
 
 /** daisyUI */
 @plugin "daisyui" {
@@ -44,18 +33,304 @@
 /* maryUI */
 @source "../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
 
-/* Theme toggle */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/**
-* Paginator - Traditional style
-* Because Laravel defaults does not match well the design of daisyUI.
-*/
+/* ─── Reset & Base ─────────────────────────────────────────── */
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
 
+body {
+    background: #fafafa;
+    color: #18181b;
+}
+
+/* ─── Scrollbar fine ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+
+/* ─── Sidebar ──────────────────────────────────────────────── */
+.mary-sidebar,
+[class*="sidebar"],
+aside {
+    background-color: var(--boutique-sidebar-bg, #18181b) !important;
+}
+
+/* ─── Navbar ───────────────────────────────────────────────── */
+.mary-nav, nav.navbar {
+    background: rgba(255,255,255,0.85) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #f4f4f5 !important;
+    box-shadow: none !important;
+}
+
+/* ─── Cards ────────────────────────────────────────────────── */
+.card {
+    background: #ffffff !important;
+    border: 1px solid #f4f4f5 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.03) !important;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.06) !important;
+    transition: box-shadow 0.2s ease;
+}
+
+/* ─── Buttons ──────────────────────────────────────────────── */
+.btn {
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+    border-radius: 8px !important;
+    font-size: 0.875rem !important;
+    transition: all 0.15s ease !important;
+}
+
+.btn-primary {
+    background-color: var(--boutique-primary, #18181b) !important;
+    border-color: var(--boutique-primary, #18181b) !important;
+    color: #fff !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--boutique-primary-dark, #09090b) !important;
+    border-color: var(--boutique-primary-dark, #09090b) !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2) !important;
+    transform: translateY(-1px);
+}
+
+.btn-ghost {
+    background: transparent !important;
+    border-color: transparent !important;
+}
+
+.btn-ghost:hover {
+    background: #f4f4f5 !important;
+}
+
+.btn-outline {
+    border: 1px solid #e4e4e7 !important;
+    background: #fff !important;
+    color: #18181b !important;
+}
+
+.btn-outline:hover {
+    background: #fafafa !important;
+    border-color: #d4d4d8 !important;
+}
+
+/* ─── Inputs ───────────────────────────────────────────────── */
+.input, .select, .textarea {
+    border: 1px solid #e4e4e7 !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    font-size: 0.875rem !important;
+    color: #18181b !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+    border-color: var(--boutique-primary, #18181b) !important;
+    box-shadow: 0 0 0 3px rgba(24,24,27,0.06) !important;
+    outline: none !important;
+}
+
+/* ─── Table ────────────────────────────────────────────────── */
+.table {
+    font-size: 0.875rem !important;
+}
+
+.table th {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #71717a !important;
+    background: #fafafa !important;
+    border-bottom: 1px solid #f4f4f5 !important;
+    padding: 10px 16px !important;
+}
+
+.table td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid #f9f9f9 !important;
+    color: #18181b !important;
+}
+
+.table tr:hover td {
+    background: #fafafa !important;
+}
+
+.table tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* ─── Badges ───────────────────────────────────────────────── */
+.badge {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em !important;
+    border-radius: 6px !important;
+    padding: 2px 8px !important;
+    border: none !important;
+}
+
+.badge-success {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+}
+
+.badge-warning {
+    background: #fef9c3 !important;
+    color: #a16207 !important;
+}
+
+.badge-error {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+}
+
+.badge-info {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+}
+
+.badge-ghost {
+    background: #f4f4f5 !important;
+    color: #71717a !important;
+}
+
+.badge-primary {
+    background: #18181b !important;
+    color: #fff !important;
+}
+
+/* ─── Modal ────────────────────────────────────────────────── */
+.modal-box {
+    border-radius: 16px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15) !important;
+    border: 1px solid #f4f4f5 !important;
+}
+
+/* ─── Menu sidebar items ───────────────────────────────────── */
+.menu li > a,
+.menu li > button,
+.menu li > details > summary {
+    border-radius: 8px !important;
+    font-size: 0.875rem !important;
+    font-weight: 450 !important;
+    color: var(--boutique-sidebar-text, #a1a1aa) !important;
+    padding: 8px 12px !important;
+    transition: all 0.15s ease !important;
+}
+
+.menu li > a:hover,
+.menu li > button:hover {
+    background: rgba(255,255,255,0.08) !important;
+    color: #fff !important;
+}
+
+.menu li > a.active,
+.menu li.active > a {
+    background: rgba(255,255,255,0.12) !important;
+    color: #fff !important;
+    font-weight: 500 !important;
+}
+
+.menu li > a.active,
+.menu li.active > a,
+.menu li > a[aria-current="page"] {
+    background: rgba(255,255,255,0.15) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* ─── Typography ───────────────────────────────────────────── */
+h1, h2, h3 {
+    letter-spacing: -0.025em;
+    font-weight: 600;
+}
+
+.text-primary { color: var(--boutique-primary, #18181b) !important; }
+.bg-primary    { background-color: var(--boutique-primary, #18181b) !important; }
+.border-primary { border-color: var(--boutique-primary, #18181b) !important; }
+
+/* ─── Stats cards ──────────────────────────────────────────── */
+.stat {
+    background: #fff !important;
+    border: 1px solid #f4f4f5 !important;
+    border-radius: 12px !important;
+    padding: 20px 24px !important;
+}
+
+/* ─── Paginator ────────────────────────────────────────────── */
 .mary-table-pagination span[aria-current="page"] > span {
-    @apply bg-primary text-base-100
+    @apply bg-primary text-white;
 }
 
 .mary-table-pagination button {
-    @apply cursor-pointer
+    @apply cursor-pointer;
+}
+
+/* ─── Dropdown ─────────────────────────────────────────────── */
+.dropdown-content {
+    border: 1px solid #f4f4f5 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,.1) !important;
+    background: #fff !important;
+}
+
+/* ─── Alert ────────────────────────────────────────────────── */
+.alert {
+    border-radius: 10px !important;
+    border: 1px solid transparent !important;
+    font-size: 0.875rem !important;
+}
+
+.alert-success { background: #f0fdf4 !important; border-color: #bbf7d0 !important; color: #15803d !important; }
+.alert-warning { background: #fffbeb !important; border-color: #fde68a !important; color: #92400e !important; }
+.alert-error   { background: #fef2f2 !important; border-color: #fecaca !important; color: #dc2626 !important; }
+
+/* ─── Toggle ───────────────────────────────────────────────── */
+.toggle-primary {
+    --tglbg: var(--boutique-primary, #18181b) !important;
+}
+
+/* ─── Tabs ─────────────────────────────────────────────────── */
+.tabs-bordered .tab {
+    font-size: 0.875rem !important;
+    font-weight: 450 !important;
+    color: #71717a !important;
+    border-bottom: 2px solid transparent !important;
+    padding: 10px 16px !important;
+}
+
+.tabs-bordered .tab-active {
+    color: var(--boutique-primary, #18181b) !important;
+    border-bottom-color: var(--boutique-primary, #18181b) !important;
+    font-weight: 500 !important;
+}
+
+/* ─── Animations légères ───────────────────────────────────── */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.card, .modal-box {
+    animation: fadeIn 0.2s ease;
+}
+
+.kpi-card {
+    box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03) !important;
+}
+
+/* ─── Focus ring global ────────────────────────────────────── */
+*:focus-visible {
+    outline: 2px solid var(--boutique-primary, #18181b) !important;
+    outline-offset: 2px !important;
 }

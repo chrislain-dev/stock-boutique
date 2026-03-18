@@ -22,7 +22,7 @@ enum PaymentStatus: string
         return match ($this) {
             self::PAID    => 'success',
             self::PARTIAL => 'warning',
-            self::UNPAID  => 'danger',
+            self::UNPAID  => 'error',
         };
     }
 }
