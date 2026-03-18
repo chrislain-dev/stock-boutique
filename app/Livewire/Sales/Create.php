@@ -6,13 +6,16 @@ use App\Enums\PaymentMethod;
 use App\Enums\ProductLocation;
 use App\Enums\ProductState;
 use App\Enums\StockMovementType;
+use App\Http\Requests\StoreSaleRequest;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Reseller;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\StockMovement;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -197,6 +200,27 @@ class Create extends Component
             return;
         }
 
+        // Prepare data for validation
+        $data = [
+            'client_name'    => $this->customer_name,
+            'client_phone'   => $this->customer_phone,
+            'reseller_id'    => $this->reseller_id,
+            'sale_items'     => array_map(fn($item) => [
+                'product_id' => $item['product_id'],
+                'quantity'   => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+            ], $this->items),
+            'paid_amount'    => $this->paid_amount,
+            'payment_method' => $this->payment_method,
+            'payment_status' => $this->computePaymentStatus(),
+            'trade_in_product_id' => $this->trade_in_product_id,
+            'notes'          => $this->notes,
+        ];
+
+        // Validate using FormRequest
+        $validator = Validator::make($data, (new StoreSaleRequest())->rules(), (new StoreSaleRequest())->messages());
+        $validator->validate();
+
         $saleId = DB::transaction(function () {
             $total     = collect($this->items)->sum('line_total');
             $tradeIn   = $this->is_trade_in ? (float) $this->trade_in_value : 0;
@@ -217,7 +241,7 @@ class Create extends Component
                 'trade_in_notes'      => $this->trade_in_notes ?: null,
                 'due_date'            => $this->due_date ?: null,
                 'notes'               => $this->notes ?: null,
-                'created_by'          => auth()->id(),
+                'created_by'          => Auth::id(),
             ]);
 
             foreach ($this->items as $item) {
@@ -236,7 +260,7 @@ class Create extends Component
                 $product = Product::find($item['product_id']);
                 $product->update([
                     'state'      => ProductState::SOLD->value,
-                    'updated_by' => auth()->id(),
+                    'updated_by' => Auth::id(),
                 ]);
 
                 // Mouvement de stock
@@ -250,7 +274,7 @@ class Create extends Component
                     'location_from'    => ProductLocation::STORE->value,
                     'location_to'      => ProductLocation::CLIENT->value,
                     'notes'            => "Vente {$sale->reference}",
-                    'created_by'       => auth()->id(),
+                    'created_by'       => Auth::id(),
                 ]);
             }
 
@@ -265,7 +289,7 @@ class Create extends Component
                     'bank_name'             => $this->bank_name ?: null,
                     'payment_date'          => now()->toDateString(),
                     'notes'                 => $this->notes ?: null,
-                    'created_by'            => auth()->id(),
+                    'created_by'            => Auth::id(),
                 ]);
             }
 
@@ -277,14 +301,14 @@ class Create extends Component
                     'payment_method' => PaymentMethod::TRADE_IN->value,
                     'payment_date'   => now()->toDateString(),
                     'notes'          => $this->trade_in_notes ?: 'Troc',
-                    'created_by'     => auth()->id(),
+                    'created_by'     => Auth::id(),
                 ]);
 
                 // Marquer le produit trocqué comme retourné
                 if ($this->trade_in_product_id) {
                     Product::find($this->trade_in_product_id)?->update([
                         'state'      => ProductState::RETURNED->value,
-                        'updated_by' => auth()->id(),
+                        'updated_by' => Auth::id(),
                     ]);
                 }
             }
@@ -294,6 +318,16 @@ class Create extends Component
 
         $this->success('Vente enregistrée !');
         $this->redirect(route('sales.show', $saleId), navigate: true);
+    }
+
+    private function computePaymentStatus(): string
+    {
+        $total  = $this->getTotal();
+        $paid   = (float) $this->paid_amount;
+
+        if ($paid >= $total) return 'paid';
+        if ($paid > 0)       return 'partial';
+        return 'unpaid';
     }
 
     public function render()

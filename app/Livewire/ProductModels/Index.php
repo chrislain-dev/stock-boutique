@@ -80,7 +80,7 @@ class Index extends Component
         $rules = [
             'name'      => 'required|string|max:255',
             'brand_id'  => 'required|exists:brands,id',
-            'category'  => 'required|in:telephone,pc,tablet,accessory',
+            'category' => 'required|in:telephone,pc,tablet,accessory' . (auth()->user()->isAdmin() ? ',sextoys' : ''),
             'is_active' => 'boolean',
             'default_purchase_price'  => 'nullable|numeric|min:0',
             'default_client_price'    => 'nullable|numeric|min:0',
@@ -363,7 +363,13 @@ class Index extends Component
     {
         $brands = Brand::active()->orderBy('name')->get();
 
+        $categories = collect(ProductCategory::cases())
+            ->when(!auth()->user()->isAdmin(), fn($c) => $c->filter(
+                fn($cat) => $cat !== ProductCategory::SEXTOYS
+            ))->values();
+
         $productModels = ProductModel::with('brand')
+            ->when(!auth()->user()->isAdmin(), fn($q) => $q->where('category', '!=', 'sextoys'))
             ->when(
                 $this->search,
                 fn($q) =>
@@ -391,7 +397,7 @@ class Index extends Component
             'productModels' => $productModels,
             'headers'       => $this->headers(),
             'brands'        => $brands,
-            'categories'    => ProductCategory::cases(),
+            'categories'    => $categories,
             'counts'        => $counts,
         ])->layout('layouts.app', ['title' => 'Modèles de produits']);
     }

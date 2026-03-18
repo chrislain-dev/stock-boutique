@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Products;
 
+use App\Http\Requests\CreateProductRequest;
 use App\Models\ProductModel;
 use App\Models\Supplier;
 use App\Services\ProductService;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
@@ -47,44 +49,7 @@ class Create extends Component
     public ?int $lastCreatedProductId = null;
     public int $lastCreatedCount = 0;
 
-    protected function rules(): array
-    {
-        $rules = [
-            'product_model_id' => 'required|exists:product_models,id',
-            'purchase_price'   => 'required|numeric|min:0',
-            'client_price'     => 'required|numeric|min:0',
-            'reseller_price'   => 'required|numeric|min:0',
-            'purchase_date'    => 'required|date',
-            'supplier_id'      => 'nullable|exists:suppliers,id',
-            'notes'            => 'nullable|string',
-        ];
 
-        if ($this->mode === 'single') {
-            $rules['imei']          = 'nullable|string|unique:products,imei';
-            $rules['serial_number'] = 'nullable|string|unique:products,serial_number';
-        }
-
-        if ($this->mode === 'bulk') {
-            $rules['imeiList'] = 'required|string';
-        }
-
-        if ($this->mode === 'import') {
-            $rules['csvFile'] = 'required|file|mimes:csv,txt|max:2048';
-        }
-
-        return $rules;
-    }
-
-    protected $messages = [
-        'product_model_id.required' => 'Le modèle est obligatoire.',
-        'purchase_price.required'   => 'Le prix d\'achat est obligatoire.',
-        'client_price.required'     => 'Le prix client est obligatoire.',
-        'reseller_price.required'   => 'Le prix revendeur est obligatoire.',
-        'purchase_date.required'    => 'La date d\'achat est obligatoire.',
-        'imei.unique'               => 'Cet IMEI existe déjà.',
-        'serial_number.unique'      => 'Ce numéro de série existe déjà.',
-        'csvFile.required'          => 'Le fichier CSV est obligatoire.',
-    ];
 
     public function mount(): void
     {
@@ -139,7 +104,27 @@ class Create extends Component
     // ─── Sauvegarder ─────────────────────────────────────────
     public function save(ProductService $service): void
     {
-        $this->validate();
+        // Prepare data for validation
+        $data = [
+            'product_model_id' => $this->product_model_id,
+            'purchase_price'   => $this->purchase_price,
+            'client_price'     => $this->client_price,
+            'reseller_price'   => $this->reseller_price,
+            'supplier_id'      => $this->supplier_id,
+            'purchase_date'    => $this->purchase_date,
+            'defects'          => $this->defects,
+            'notes'            => $this->notes,
+        ];
+
+        // Add IMEI/serial for single mode
+        if ($this->mode === 'single') {
+            $data['imei'] = $this->imei;
+            $data['serial_number'] = $this->serial_number;
+        }
+
+        // Validate using FormRequest
+        $validator = Validator::make($data, (new CreateProductRequest())->rules(), (new CreateProductRequest())->messages());
+        $validator->validate();
 
         $commonData = [
             'product_model_id' => $this->product_model_id,
@@ -194,12 +179,10 @@ class Create extends Component
         $productModels = ProductModel::with('brand')
             ->where('is_active', true)
             ->where('is_serialized', true)
+            ->when(!auth()->user()->isAdmin(), fn($q) => $q->where('category', '!=', 'sextoys'))
             ->orderBy('name')
             ->get()
-            ->map(fn($m) => [
-                'id'   => $m->id,
-                'name' => $m->display_label,
-            ]);
+            ->map(fn($m) => ['id' => $m->id, 'name' => $m->display_label]);
 
         $suppliers = Supplier::active()->orderBy('name')->get()
             ->map(fn($s) => ['id' => $s->id, 'name' => $s->name]);

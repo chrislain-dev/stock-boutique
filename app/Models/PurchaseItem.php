@@ -33,6 +33,25 @@ class PurchaseItem extends Model
         'condition'           => ProductCondition::class,
     ];
 
+    // ─── Boot ──────────────────────────────────────────────────
+    protected static function booted(): void
+    {
+        static::saving(function (PurchaseItem $item) {
+            if ($item->quantity <= 0) {
+                throw new \Exception('La quantité doit être au moins 1.');
+            }
+
+            if ($item->unit_purchase_price <= 0) {
+                throw new \Exception('Le prix unitaire doit être positif.');
+            }
+
+            // Auto-calculate line_total if needed
+            if (!$item->line_total || $item->isDirty(['quantity', 'unit_purchase_price'])) {
+                $item->line_total = $item->quantity * $item->unit_purchase_price;
+            }
+        });
+    }
+
     // ─── Relations ────────────────────────────────────────────
     public function purchase(): BelongsTo
     {

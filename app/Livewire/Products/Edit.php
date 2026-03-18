@@ -131,6 +131,7 @@ class Edit extends Component
     {
         $productModels = ProductModel::with('brand')
             ->where('is_active', true)
+            ->when(!auth()->user()->isAdmin(), fn($q) => $q->where('category', '!=', 'sextoys'))
             ->orderBy('name')
             ->get()
             ->map(fn($m) => ['id' => $m->id, 'name' => $m->full_name]);

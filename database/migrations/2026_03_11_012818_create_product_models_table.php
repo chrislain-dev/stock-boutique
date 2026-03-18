@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('brand_id')->constrained()->restrictOnDelete();
             $table->string('model_number')->nullable();
-            $table->enum('category', ['telephone', 'pc', 'tablet', 'accessory']);
+            $table->enum('category', ['telephone', 'pc', 'tablet', 'accessory', 'sextoys']);
             $table->enum('condition', [
                 'sealed',        // Scellé (neuf jamais ouvert)
                 'refurbished',   // Reconditionné

@@ -104,7 +104,16 @@ class Index extends Component
                 ->toArray();
         }
 
+        $categories = collect(ProductCategory::cases())
+            ->when(!auth()->user()->isAdmin(), fn($c) => $c->filter(
+                fn($cat) => $cat !== ProductCategory::SEXTOYS
+            ))->values();
+
         $products = Product::with(['productModel.brand', 'supplier'])
+            ->when(!auth()->user()->isAdmin(), fn($q) => $q->whereHas(
+                'productModel',
+                fn($q) => $q->where('category', '!=', 'sextoys')
+            ))
             ->when(
                 $this->selectedState,
                 fn($q) =>
@@ -155,7 +164,7 @@ class Index extends Component
             'stateStats'  => $stateStats,
             'conditions'  => ProductCondition::cases(),
             'locations'   => ProductLocation::cases(),
-            'categories'  => ProductCategory::cases(),
+            'categories'  => $categories,
         ])->layout('layouts.app', ['title' => 'Produits']);
     }
 }

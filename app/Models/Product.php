@@ -40,6 +40,51 @@ class Product extends Model
         'purchase_date'  => 'date',
     ];
 
+    // ─── Boot events ───────────────────────────────────────────
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Prevent deletion if product is sold or unavailable
+        static::deleting(function ($product) {
+            if ($product->state !== ProductState::AVAILABLE) {
+                throw new \Exception(
+                    "Impossible de supprimer un produit qui n'est pas disponible (État: {$product->state->value})"
+                );
+            }
+        });
+
+        // Validate prices on save
+        static::saving(function ($product) {
+            if ($product->purchase_price < 0 || $product->client_price < 0 || $product->reseller_price < 0) {
+                throw new \Exception('Les prix doivent être positifs.');
+            }
+
+            if ($product->client_price < $product->purchase_price) {
+                throw new \Exception('Le prix client doit être >= au prix d\'achat.');
+            }
+        });
+
+        // Validate state transition on update
+        static::updating(function ($product) {
+            $originalState = $product->getOriginal('state');
+            $newState = $product->state;
+
+            // getOriginal() peut retourner soit une string soit un Enum (selon le contexte)
+            if ($originalState instanceof ProductState) {
+                $originalStateEnum = $originalState;
+            } else {
+                $originalStateEnum = ProductState::tryFrom($originalState);
+            }
+
+            if ($originalStateEnum && $originalStateEnum !== $newState && !$originalStateEnum->canTransitionTo($newState)) {
+                throw new \Exception(
+                    "Transition d'état impossible : {$originalState} → {$newState->value}"
+                );
+            }
+        });
+    }
+
     // ─── Relations ────────────────────────────────────────────
     public function productModel(): BelongsTo
     {

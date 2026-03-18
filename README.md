@@ -1,52 +1,218 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Stock Boutique
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Système de gestion d'inventaire et de ventes pour boutique de téléphones et appareils électroniques**
 
-## About Laravel
+Un application Laravel Livewire complète pour gérer les stocks, ventes, achats, et créances avec traçabilité et audit complets.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🚀 Démarrage Rapide
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Prérequis
+- PHP 8.2+
+- PostgreSQL 12+
+- Composer
+- Node.js 16+
 
-## Learning Laravel
+### Installation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```bash
+# Clone repository
+git clone <repo-url>
+cd stock-boutique
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Install dependencies
+composer install
+npm install
 
-## Laravel Sponsors
+# Setup environment
+cp .env.example .env
+php artisan key:generate
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Configure database in .env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=stock_boutique
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
 
-### Premium Partners
+# Run migrations
+php artisan migrate
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# Build assets
+npm run build
 
-## Contributing
+# Seed database (optional)
+php artisan db:seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Lancer l'application
 
-## Code of Conduct
+```bash
+# Start dev server
+php artisan serve
+
+# In another terminal, watch assets
+npm run dev
+
+# Visit http://localhost:8000
+```
+
+---
+
+## 📋 Architecture & Fonctionnalités
+
+### Base de Données
+- **19 tables** avec migrations versionées
+- **Soft deletes** sur tous les modèles critiques
+- **Audit trail complet** via `activity_logs`
+- **Contraintes CHECK SQL** pour forcer les règles métier
+- **Foreign keys** avec cascade/restrict approprié
+
+### Modules Principaux
+
+#### 1. Gestion des Produits
+- 📦 Produits sérialisés (IMEI/N°série uniques)
+- 🏷️ États FSM: AVAILABLE → SOLD/DEFECTIVE/RESERVED → RETURNED
+- 🏠 Localisation: STORE, TRANSIT, CLIENT, RESELLER, REPAIR_SHOP
+- 💾 Specs techniques par modèle
+- 📊 Trois niveaux de prix: Achat, Client, Revendeur
+
+#### 2. Gestion des Ventes
+- 💰 Clients directs (anonymes) + Revendeurs (comptes)
+- 💳 6 modes de paiement: Cash, Mobile Money, Virement, Chèque, Carte, Troc
+- 📝 Paiements partiels avec suivi créances
+- 🔄 Troc (trade-in): produit donné en échange  
+- 📄 Génération automatique références (VTE-2024-00001)
+- 🧾 Reçus/tickets
+
+#### 3. Gestion des Achats
+- 🏭 Achats fournisseurs avec paiements
+- 📦 Import produits depuis achats
+- 📍 Suivi réception (pending/received/cancelled)
+- 🔢 Génération auto-ref (ACH-2024-00001)
+
+#### 4. Stock & Mouvements
+- 📊 Mouvements immuables (audit trail permanent)
+- 📝 Types: STOCK_IN, STOCK_OUT, TRANSFER, LOSS, GAIN, ADJUSTMENT
+- 🔍 Suivi complet: qui, quand, raison, avant/après
+- 🛡️ Ajustements manuels admin-only
+
+#### 5. Permissions Granulaires
+- 👨‍💼 Rôles: ADMIN, VENDEUR
+- 🔐 Permissions: 
+  - `see_purchase_price` (ADMIN)
+  - `see_profit` (ADMIN)
+  - `cancel_sale` (ADMIN)
+  - `adjust_stock` (ADMIN)
+  - `manage_users` (ADMIN)
+
+#### 6. Rapports & Analytics
+- 📈 Dashboard en temps réel
+- 📊 Rapports: CA, Marges, Profits, Créances
+- 📉 Breakdown par marque/période
+- 📥 Export: Excel multi-feuilles, PDF
+
+#### 7. Audit & Traçabilité
+- 📝 **ActivityLogs**: Toutes les CRUD avec old/new values
+- 👤 **CreatedBy/UpdatedBy**: Tracé sur tous les modèles
+- 💰 **PriceHistory**: Historique de prix
+- 🌐 **IP & User-Agent** loggés
+
+---
+
+## 🛡️ Sécurité & Robustesse (Phase 1-3)
+
+### Phase 1: Exception Handling & Middleware
+✅ **Exception Handler** personnalisé avec logging contextuel  
+✅ **Middleware CSRF, Auth, Permissions**  
+✅ **Pages d'erreur** custom (404, 403, 500, generic)  
+✅ **Form Request classes** centralisées avec validations métier  
+✅ **GitHub Actions CI/CD** pour tests automatiques  
+
+### Phase 2: Validations Métier & Contraintes DB
+✅ **Validations strictes** au niveau Model:
+   - Produits: IMEI unique, prix valides, état cohérent
+   - Ventes: `paid_amount ≤ total_amount`, articles exist
+   - Achats: fournisseur active, quantités > 0
+   - Paiements: montant positif, total ne dépasse pas vente
+
+✅ **Contraintes SQL CHECK** pour forcer les règles en DB:
+   - Prices >= 0
+   - Quantities > 0
+   - `client_price >= purchase_price`
+   - States valides
+   - StockMovements immuables
+
+✅ **Tests Unit & Feature** complets:
+   - ProductBusinessRulesTest, SaleBusinessRulesTest, etc.
+   - Coverage des cas nominaux ET edge cases
+
+### Phase 3: Permissions Enforcement & Audit
+✅ **Trait EnsurePermission** réutilisable  
+✅ **Vérifications strictes** dans les Livewire components  
+✅ **Tests des permissions** (vendeur ≠ admin)  
+✅ **Audit logging** pour opérations sensibles  
+✅ **Notifications safety** (database-only, pas SMS/email non testés)  
+
+---
+
+## 🧪 Tests
+
+### Lancer les tests
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test class
+php artisan test tests/Feature/SaleValidationTest.php
+
+# Run with coverage
+php artisan test --coverage
+
+# Watch mode
+php artisan test --watch
+```
+
+### Couverture de tests
+
+- **Unit Tests**: Models, Permissions, Business Rules
+- **Feature Tests**: Validations, Exception Handling, Audit Trail, Notifications
+- **Integration Tests**: Permission Enforcement
+
+### Structure des tests
+
+```
+tests/
+  Feature/
+    SaleValidationTest.php        # Validations métier ventes
+    ProductValidationTest.php     # Validations métier produits
+    PermissionEnforcementTest.php # Tests permissions
+    AuditTrailTest.php           # Tests audit logging
+    NotificationTest.php         # Tests notifications
+    ErrorHandlingTest.php        # Tests gestion erreurs
+  Unit/
+    UserPermissionsTest.php      # Tests permissions par rôle
+    ProductBusinessRulesTest.php # Tests règles produits
+    SaleBusinessRulesTest.php    # Tests règles ventes
+    PaymentBusinessRulesTest.php # Tests paiements
+```
+
+---
+
+## 📋 Checklist Production
+
+- [ ] Database migrations exécutées et validées
+- [ ] Tests tous passants (`php artisan test`)
+- [ ] Erreurs de linting résolues (`php artisan lint`)
+- [ ] Clé d'application générée (`php artisan key:generate`)
+- [ ] Cache vidé (`php artisan cache:clear`)
+- [ ] Permissions utilisateurs définies
+- [ ] Mode debug à `false` en production
+- [ ] Logs configurés (fichier/Sentry)
+- [ ] Backups configu
 
 In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 

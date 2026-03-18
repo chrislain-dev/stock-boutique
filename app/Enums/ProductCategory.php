@@ -8,6 +8,7 @@ enum ProductCategory: string
     case PC         = 'pc';
     case TABLET     = 'tablet';
     case ACCESSORY  = 'accessory';
+    case SEXTOYS    = 'sextoys';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum ProductCategory: string
             self::PC        => 'PC / Laptop',
             self::TABLET    => 'Tablette',
             self::ACCESSORY => 'Accessoire',
+            self::SEXTOYS    => 'Sextoys',
         };
     }
 
@@ -31,6 +33,7 @@ enum ProductCategory: string
             self::PC        => 'computer-desktop',
             self::TABLET    => 'device-tablet',
             self::ACCESSORY => 'puzzle-piece',
+            self::SEXTOYS    => 'heart',
         };
     }
 }

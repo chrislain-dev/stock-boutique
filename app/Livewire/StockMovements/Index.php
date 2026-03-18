@@ -4,13 +4,15 @@ namespace App\Livewire\StockMovements;
 
 use App\Enums\StockMovementType;
 use App\Models\StockMovement;
+use App\Traits\EnsurePermission;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
 class Index extends Component
 {
-    use Toast, WithPagination;
+    use Toast, WithPagination, EnsurePermission;
 
     public string $search     = '';
     public string $typeFilter = '';
@@ -84,7 +86,7 @@ class Index extends Component
             'location_from'    => $this->adjust_location_from ?: null,
             'location_to'      => $this->adjust_location_to ?: null,
             'notes'            => $this->adjust_notes,
-            'created_by'       => auth()->id(),
+            'created_by'       => Auth::id(),
         ]);
 
         // Mettre à jour l'état du produit si perte

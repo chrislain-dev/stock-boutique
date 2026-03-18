@@ -30,6 +30,13 @@ class BrandSeeder extends Seeder
             'LG',
             'OnePlus',
             'Realme',
+
+            // ─── Sextoys ──────────────────────────────────────
+            'Satisfyer',
+            'Lovense',
+            'We-Vibe',
+            'Lelo',
+            'Womanizer',
         ];
 
         foreach ($brands as $brand) {

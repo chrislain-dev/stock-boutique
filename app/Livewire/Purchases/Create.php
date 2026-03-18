@@ -5,16 +5,19 @@ namespace App\Livewire\Purchases;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductCondition;
+use App\Enums\ProductLocation;
+use App\Enums\ProductState;
+use App\Enums\StockMovementType;
+use App\Http\Requests\StorePurchaseRequest;
 use App\Models\Product;
 use App\Models\ProductModel;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
-use App\Models\Supplier;
 use App\Models\StockMovement;
-use App\Enums\StockMovementType;
-use App\Enums\ProductState;
-use App\Enums\ProductLocation;
+use App\Models\Supplier;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -231,6 +234,25 @@ class Create extends Component
             return;
         }
 
+        // Prepare data for validation
+        $data = [
+            'supplier_id' => $this->supplier_id,
+            'reference' => $this->reference,
+            'purchase_date' => $this->purchase_date,
+            'due_date' => $this->due_date,
+            'purchase_items' => array_map(function ($item) {
+                return [
+                    'product_model_id' => $item['product_model_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                ];
+            }, $this->items),
+        ];
+
+        // Validate using FormRequest
+        $validator = Validator::make($data, (new StorePurchaseRequest())->rules(), (new StorePurchaseRequest())->messages());
+        $validator->validate();
+
         DB::transaction(function () {
             $total = collect($this->items)->sum('line_total');
 
@@ -245,7 +267,7 @@ class Create extends Component
                 'purchase_date'          => $this->purchase_date,
                 'due_date'               => $this->due_date ?: null,
                 'notes'                  => $this->notes ?: null,
-                'created_by'             => auth()->id(),
+                'created_by'             => Auth::id(),
             ]);
 
             foreach ($this->items as $item) {
@@ -264,8 +286,8 @@ class Create extends Component
                             'reseller_price'   => $item['unit_reseller_price'],
                             'purchase_date'    => $this->purchase_date,
                             'supplier_id'      => $this->supplier_id,
-                            'created_by'       => auth()->id(),
-                            'updated_by'       => auth()->id(),
+                            'created_by'       => Auth::id(),
+                            'updated_by'       => Auth::id(),
                         ]);
 
                         PurchaseItem::create([
@@ -291,7 +313,7 @@ class Create extends Component
                             'location_from'    => null,
                             'location_to'      => ProductLocation::STORE->value,
                             'notes'            => "Achat {$purchase->reference}",
-                            'created_by'       => auth()->id(),
+                            'created_by'       => Auth::id(),
                         ]);
                     }
                 } else {
@@ -308,8 +330,8 @@ class Create extends Component
                             'reseller_price'   => $item['unit_reseller_price'],
                             'purchase_date'    => $this->purchase_date,
                             'supplier_id'      => $this->supplier_id,
-                            'created_by'       => auth()->id(),
-                            'updated_by'       => auth()->id(),
+                            'created_by'       => Auth::id(),
+                            'updated_by'       => Auth::id(),
                         ]);
 
                         StockMovement::create([
@@ -318,11 +340,11 @@ class Create extends Component
                             'type'          => StockMovementType::STOCK_IN->value,
                             'quantity'         => 1,
                             'quantity_before'  => 0,
-                            'quantity_after'   => 1,           
+                            'quantity_after'   => 1,
                             'location_from' => null,
                             'location_to'   => ProductLocation::STORE->value,
                             'notes'         => "Achat {$purchase->reference}",
-                            'created_by'    => auth()->id(),
+                            'created_by'    => Auth::id(),
                         ]);
                     }
 

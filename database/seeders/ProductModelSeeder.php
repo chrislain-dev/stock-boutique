@@ -17,6 +17,12 @@ class ProductModelSeeder extends Seeder
         $lenovo  = Brand::where('name', 'Lenovo')->first();
         $xiaomi  = Brand::where('name', 'Xiaomi')->first();
 
+        $satisfyer  = Brand::where('name', 'Satisfyer')->first();
+        $lovense    = Brand::where('name', 'Lovense')->first();
+        $wevibe     = Brand::where('name', 'We-Vibe')->first();
+        $lelo       = Brand::where('name', 'Lelo')->first();
+        $womanizer  = Brand::where('name', 'Womanizer')->first();
+
         $models = [
 
             // ─── iPhones ──────────────────────────────────────────
@@ -118,6 +124,91 @@ class ProductModelSeeder extends Seeder
              'storage_gb' => 128, 'ram_gb' => 8, 'screen_size' => '11',
              'connectivity' => 'WiFi+4G', 'stylus_support' => 'S-Pen',
              'purchase' => 220000, 'client' => 290000, 'reseller' => 265000],
+
+            // ─── Sextoys ──────────────────────────────────────────
+            [
+                'brand' => $satisfyer,
+                'name' => 'Pro 2 Generation 3',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Stimulateur',
+                'color' => 'Noir',
+                'purchase' => 25000,
+                'client' => 40000,
+                'reseller' => 35000
+            ],
+
+            [
+                'brand' => $satisfyer,
+                'name' => 'Curvy 1+',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Stimulateur',
+                'color' => 'Rose',
+                'purchase' => 18000,
+                'client' => 30000,
+                'reseller' => 26000
+            ],
+
+            [
+                'brand' => $lovense,
+                'name' => 'Lush 3',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Vibromasseur connecté',
+                'color' => 'Rose',
+                'purchase' => 35000,
+                'client' => 55000,
+                'reseller' => 48000
+            ],
+
+            [
+                'brand' => $lovense,
+                'name' => 'Nora',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Vibromasseur connecté',
+                'color' => 'Rose',
+                'purchase' => 40000,
+                'client' => 65000,
+                'reseller' => 57000
+            ],
+
+            [
+                'brand' => $wevibe,
+                'name' => 'Chorus',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Vibromasseur couple',
+                'color' => 'Violet',
+                'purchase' => 45000,
+                'client' => 72000,
+                'reseller' => 63000
+            ],
+
+            [
+                'brand' => $lelo,
+                'name' => 'Sona 2',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Stimulateur sonic',
+                'color' => 'Bordeaux',
+                'purchase' => 38000,
+                'client' => 60000,
+                'reseller' => 53000
+            ],
+
+            [
+                'brand' => $womanizer,
+                'name' => 'Premium 2',
+                'category' => 'sextoys',
+                'condition' => 'sealed',
+                'accessory_type' => 'Stimulateur',
+                'color' => 'Noir',
+                'purchase' => 42000,
+                'client' => 68000,
+                'reseller' => 59000
+            ],
         ];
 
         foreach ($models as $m) {

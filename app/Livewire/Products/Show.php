@@ -14,13 +14,18 @@ class Show extends Component
 
     public function mount(Product $product): void
     {
+        // Bloquer les non-admins sur les produits sextoys
+        if (!auth()->user()->isAdmin() && $product->productModel->category->value === 'sextoys') {
+            abort(403);
+        }
+
         $this->product = $product->load([
             'productModel.brand',
             'supplier',
             'createdBy',
             'updatedBy',
             'stockMovements' => fn($q) => $q->orderBy('created_at', 'desc')->limit(10),
-            'priceHistory' => fn($q) => $q->orderBy('created_at', 'desc')->limit(5),
+            'priceHistory'   => fn($q) => $q->orderBy('created_at', 'desc')->limit(5),
         ]);
     }
 
