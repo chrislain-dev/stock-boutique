@@ -380,87 +380,96 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+@script
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const data = @js($chartData);
-    const ctx  = document.getElementById('caChart');
-    if (!ctx) return;
+    let _caChart = null;
 
-    const primary = getComputedStyle(document.documentElement)
-        .getPropertyValue('--boutique-primary').trim() || '#18181b';
+    function initDashboardChart() {
+        if (typeof Chart === 'undefined') return;
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                data: data.values,
-                borderColor: primary,
-                backgroundColor: (context) => {
-                    const chart = context.chart;
-                    const { ctx: c, chartArea } = chart;
-                    if (!chartArea) return 'transparent';
-                    const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                    gradient.addColorStop(0, primary + '18');
-                    gradient.addColorStop(1, primary + '00');
-                    return gradient;
-                },
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: primary,
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 7,
-                pointHoverBackgroundColor: primary,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2,
-            }]
-        },
-        options: {
-            responsive: true,
-            interaction: { intersect: false, mode: 'index' },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#18181b',
-                    titleColor: '#71717a',
-                    bodyColor: '#fff',
-                    padding: 12,
-                    cornerRadius: 10,
-                    borderColor: '#27272a',
-                    borderWidth: 1,
-                    callbacks: {
-                        title: items => items[0].label,
-                        label: ctx => '  ' + ctx.parsed.y.toLocaleString('fr') + ' {{ config('boutique.devise_symbole') }}'
-                    }
-                }
+        const el = document.getElementById('caChart');
+        if (!el) return;
+
+        // Détruire l'instance existante
+        if (_caChart) { _caChart.destroy(); _caChart = null; }
+
+        const data    = @js($chartData);
+        const primary = getComputedStyle(document.documentElement)
+            .getPropertyValue('--boutique-primary').trim() || '#18181b';
+
+        _caChart = new Chart(el, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.values,
+                    borderColor: primary,
+                    backgroundColor: (context) => {
+                        const chart = context.chart;
+                        const { ctx: c, chartArea } = chart;
+                        if (!chartArea) return 'transparent';
+                        const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                        gradient.addColorStop(0, primary + '18');
+                        gradient.addColorStop(1, primary + '00');
+                        return gradient;
+                    },
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: primary,
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: primary,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2,
+                }]
             },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    border: { display: false },
-                    ticks: { color: '#a1a1aa', font: { size: 11, family: 'Geist Mono, monospace' } }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#f4f4f5', drawBorder: false },
-                    border: { display: false },
-                    ticks: {
-                        color: '#a1a1aa',
-                        font: { size: 11 },
-                        callback: val => val === 0 ? '0' : (val / 1000).toFixed(0) + 'k'
+            options: {
+                responsive: true,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#18181b',
+                        titleColor: '#71717a',
+                        bodyColor: '#fff',
+                        padding: 12,
+                        cornerRadius: 10,
+                        borderColor: '#27272a',
+                        borderWidth: 1,
+                        callbacks: {
+                            title: items => items[0].label,
+                            label: ctx => '  ' + ctx.parsed.y.toLocaleString('fr') + ' {{ config('boutique.devise_symbole') }}'
+                        }
                     }
-                }
-            },
-            animation: {
-                duration: 800,
-                easing: 'easeOutQuart'
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { color: '#a1a1aa', font: { size: 11, family: 'Geist Mono, monospace' } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f4f4f5' },
+                        border: { display: false },
+                        ticks: {
+                            color: '#a1a1aa',
+                            font: { size: 11 },
+                            callback: val => val === 0 ? '0' : (val / 1000).toFixed(0) + 'k'
+                        }
+                    }
+                },
+                animation: { duration: 800, easing: 'easeOutQuart' }
             }
-        }
-    });
-});
+        });
+    }
+
+    // Premier chargement et après chaque navigation wire:navigate
+    setTimeout(initDashboardChart, 80);
+    Livewire.hook('morph.updated', () => setTimeout(initDashboardChart, 80));
 </script>
+@endscript
 @endpush

@@ -300,6 +300,17 @@ h1, h2, h3 {
     --tglbg: var(--boutique-primary, #18181b) !important;
 }
 
+/* Toggle switch custom */
+.toggle-switch {
+    @apply relative inline-flex h-5 w-9 cursor-pointer rounded-full bg-gray-200 transition-colors;
+}
+.toggle-switch.checked { @apply bg-indigo-500; }
+.toggle-switch::after {
+    content: '';
+    @apply absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform;
+}
+.toggle-switch.checked::after { @apply translate-x-4; }
+
 /* ─── Tabs ─────────────────────────────────────────────────── */
 .tabs-bordered .tab {
     font-size: 0.875rem !important;

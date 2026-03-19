@@ -28,41 +28,53 @@ class Create extends Component
     public int $step = 1;
 
     // ─── Étape 1 : Infos achat ────────────────────────────────
-    public string $purchase_date       = '';
-    public ?int   $supplier_id         = null;
-    public string $payment_method      = '';
-    public string $payment_status      = 'unpaid';
-    public string $paid_amount         = '0';
-    public string $due_date            = '';
-    public string $transaction_reference = '';
-    public string $notes               = '';
+    public string $purchase_date          = '';
+    public ?int   $supplier_id            = null;
+    public string $payment_method         = '';
+    public string $payment_status         = 'unpaid';
+    public string $paid_amount            = '0';
+    public string $due_date               = '';
+    public string $transaction_reference  = '';
+    public string $notes                  = '';
+
+    // ─── Référence auto-générée ───────────────────────────────
+    public string $reference = '';
 
     // ─── Étape 2 : Lignes produits ────────────────────────────
     public array $items = [];
 
     // Formulaire ajout ligne
-    public ?int  $line_product_model_id    = null;
-    public string $line_condition          = 'sealed';
-    public string $line_unit_purchase_price = '';
-    public string $line_unit_client_price  = '';
-    public string $line_unit_reseller_price = '';
-    public string $line_notes             = '';
+    public ?int   $line_product_model_id      = null;
+    public string $line_condition              = 'sealed';
+    public string $line_unit_purchase_price    = '';
+    public string $line_unit_client_price      = '';
+    public string $line_unit_reseller_price    = '';
+    public string $line_notes                  = '';
 
     // Mode saisie IMEI
-    public string $line_imei_mode  = 'manual'; // manual | bulk
-    public string $line_imei_single = '';
-    public string $line_imei_bulk   = '';
-    public array  $line_imei_list   = ['']; // champs manuels
+    public string $line_imei_mode    = 'manual'; // manual | bulk
+    public string $line_imei_single  = '';
+    public string $line_imei_bulk    = '';
+    public array  $line_imei_list    = [''];
 
     // Pour accessoires (non sérialisé)
-    public int    $line_quantity   = 1;
-
-    // Modèle sélectionné (pour savoir si sérialisé)
-    public bool   $line_is_serialized = true;
+    public int  $line_quantity       = 1;
+    public bool $line_is_serialized  = true;
 
     public function mount(): void
     {
         $this->purchase_date = now()->format('Y-m-d');
+        $this->reference     = $this->generateReference();
+    }
+
+    // ─── Génération référence unique ──────────────────────────
+    private function generateReference(): string
+    {
+        do {
+            $ref = 'ACH-' . now()->format('Ym') . '-' . strtoupper(substr(uniqid(), -5));
+        } while (Purchase::where('reference', $ref)->exists());
+
+        return $ref;
     }
 
     // ─── Navigation étapes ────────────────────────────────────
@@ -82,10 +94,10 @@ class Create extends Component
     private function validateStep1(): void
     {
         $this->validate([
-            'purchase_date' => 'required|date',
-            'supplier_id'   => 'required|exists:suppliers,id',
+            'purchase_date'  => 'required|date',
+            'supplier_id'    => 'required|exists:suppliers,id',
             'payment_status' => 'required|in:paid,partial,unpaid',
-            'paid_amount'   => 'required|numeric|min:0',
+            'paid_amount'    => 'required|numeric|min:0',
         ]);
     }
 
@@ -126,38 +138,30 @@ class Create extends Component
     public function addLine(): void
     {
         $this->validate([
-            'line_product_model_id'     => 'required|exists:product_models,id',
-            'line_unit_purchase_price'  => 'required|numeric|min:0',
-            'line_unit_client_price'    => 'required|numeric|min:0',
-            'line_unit_reseller_price'  => 'required|numeric|min:0',
+            'line_product_model_id'    => 'required|exists:product_models,id',
+            'line_unit_purchase_price' => 'required|numeric|min:0',
+            'line_unit_client_price'   => 'required|numeric|min:0',
+            'line_unit_reseller_price' => 'required|numeric|min:0',
         ]);
 
         $model = ProductModel::find($this->line_product_model_id);
 
         if ($this->line_is_serialized) {
-            // Récupérer tous les IMEI/serials
-            if ($this->line_imei_mode === 'bulk') {
-                $identifiers = array_filter(
-                    array_map('trim', explode("\n", $this->line_imei_bulk))
-                );
-            } else {
-                $identifiers = array_filter(
-                    array_map('trim', $this->line_imei_list)
-                );
-            }
+            $identifiers = $this->line_imei_mode === 'bulk'
+                ? array_filter(array_map('trim', explode("\n", $this->line_imei_bulk)))
+                : array_filter(array_map('trim', $this->line_imei_list));
 
             $identifiers = array_values(array_unique($identifiers));
 
             if (empty($identifiers)) {
-                $this->addError('line_imei_single', 'Saisissez au moins un IMEI/numéro de série.');
+                $this->addError('line_imei_single', 'Saisissez au moins un IMEI ou numéro de série.');
                 return;
             }
 
-            // Vérifier doublons internes
             foreach ($identifiers as $id) {
                 foreach ($this->items as $item) {
                     if (isset($item['identifiers']) && in_array($id, $item['identifiers'])) {
-                        $this->addError('line_imei_single', "L'identifiant {$id} est déjà dans la liste.");
+                        $this->addError('line_imei_single', "L'identifiant « {$id} » est déjà dans la liste.");
                         return;
                     }
                 }
@@ -206,68 +210,79 @@ class Create extends Component
 
     private function resetLine(): void
     {
-        $this->line_product_model_id     = null;
-        $this->line_condition            = 'sealed';
-        $this->line_unit_purchase_price  = '';
-        $this->line_unit_client_price    = '';
-        $this->line_unit_reseller_price  = '';
-        $this->line_notes                = '';
-        $this->line_imei_mode            = 'manual';
-        $this->line_imei_single          = '';
-        $this->line_imei_bulk            = '';
-        $this->line_imei_list            = [''];
-        $this->line_quantity             = 1;
-        $this->line_is_serialized        = true;
+        $this->line_product_model_id    = null;
+        $this->line_condition           = 'sealed';
+        $this->line_unit_purchase_price = '';
+        $this->line_unit_client_price   = '';
+        $this->line_unit_reseller_price = '';
+        $this->line_notes               = '';
+        $this->line_imei_mode           = 'manual';
+        $this->line_imei_single         = '';
+        $this->line_imei_bulk           = '';
+        $this->line_imei_list           = [''];
+        $this->line_quantity            = 1;
+        $this->line_is_serialized       = true;
         $this->resetErrorBag();
-    }
-
-    public function getTotalAttribute(): float
-    {
-        return collect($this->items)->sum('line_total');
     }
 
     // ─── Sauvegarde finale ────────────────────────────────────
     public function save(): void
     {
         if (empty($this->items)) {
-            $this->error('Ajoutez au moins une ligne.');
+            $this->error('Ajoutez au moins une ligne avant de valider.');
             return;
         }
 
-        // Prepare data for validation
+        // Régénère la référence si elle a été prise entre-temps
+        if (Purchase::where('reference', $this->reference)->exists()) {
+            $this->reference = $this->generateReference();
+        }
+
+        // Validation finale via FormRequest
         $data = [
-            'supplier_id' => $this->supplier_id,
-            'reference' => $this->reference,
-            'purchase_date' => $this->purchase_date,
-            'due_date' => $this->due_date,
-            'purchase_items' => array_map(function ($item) {
-                return [
-                    'product_model_id' => $item['product_model_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                ];
-            }, $this->items),
+            'supplier_id'    => $this->supplier_id,
+            'reference'      => $this->reference,
+            'purchase_date'  => $this->purchase_date,
+            'due_date'       => $this->due_date ?: null,
+            'paid_amount'    => $this->paid_amount,
+            'payment_status' => $this->payment_status,
+            'notes'          => $this->notes,
+            'purchase_items' => array_map(fn($item) => [
+                'product_model_id' => $item['product_model_id'],
+                'quantity'         => $item['quantity'],
+                'unit_price'       => $item['unit_purchase_price'],
+            ], $this->items),
         ];
 
-        // Validate using FormRequest
-        $validator = Validator::make($data, (new StorePurchaseRequest())->rules(), (new StorePurchaseRequest())->messages());
-        $validator->validate();
+        $validator = Validator::make(
+            $data,
+            (new StorePurchaseRequest())->rules(),
+            (new StorePurchaseRequest())->messages()
+        );
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->all() as $message) {
+                $this->error($message);
+            }
+            return;
+        }
 
         DB::transaction(function () {
             $total = collect($this->items)->sum('line_total');
 
             $purchase = Purchase::create([
-                'supplier_id'            => $this->supplier_id,
-                'total_amount'           => $total,
-                'paid_amount'            => $this->paid_amount ?: 0,
-                'payment_status'         => $this->payment_status,
-                'status'                 => 'received',
-                'payment_method'         => $this->payment_method ?: null,
-                'transaction_reference'  => $this->transaction_reference ?: null,
-                'purchase_date'          => $this->purchase_date,
-                'due_date'               => $this->due_date ?: null,
-                'notes'                  => $this->notes ?: null,
-                'created_by'             => Auth::id(),
+                'supplier_id'           => $this->supplier_id,
+                'reference'             => $this->reference,
+                'total_amount'          => $total,
+                'paid_amount'           => $this->paid_amount ?: 0,
+                'payment_status'        => $this->payment_status,
+                'status'                => 'received',
+                'payment_method'        => $this->payment_method ?: null,
+                'transaction_reference' => $this->transaction_reference ?: null,
+                'purchase_date'         => $this->purchase_date,
+                'due_date'              => $this->due_date ?: null,
+                'notes'                 => $this->notes ?: null,
+                'created_by'            => Auth::id(),
             ]);
 
             foreach ($this->items as $item) {
@@ -317,7 +332,6 @@ class Create extends Component
                         ]);
                     }
                 } else {
-                    // Accessoires non sérialisés — N produits sans IMEI
                     for ($i = 0; $i < $item['quantity']; $i++) {
                         $product = Product::create([
                             'product_model_id' => $item['product_model_id'],
@@ -336,15 +350,15 @@ class Create extends Component
 
                         StockMovement::create([
                             'product_model_id' => $product->product_model_id,
-                            'product_id'    => $product->id,
-                            'type'          => StockMovementType::STOCK_IN->value,
+                            'product_id'       => $product->id,
+                            'type'             => StockMovementType::STOCK_IN->value,
                             'quantity'         => 1,
                             'quantity_before'  => 0,
                             'quantity_after'   => 1,
-                            'location_from' => null,
-                            'location_to'   => ProductLocation::STORE->value,
-                            'notes'         => "Achat {$purchase->reference}",
-                            'created_by'    => Auth::id(),
+                            'location_from'    => null,
+                            'location_to'      => ProductLocation::STORE->value,
+                            'notes'            => "Achat {$purchase->reference}",
+                            'created_by'       => Auth::id(),
                         ]);
                     }
 

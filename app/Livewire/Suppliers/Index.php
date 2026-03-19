@@ -155,18 +155,21 @@ class Index extends Component
 
     public function render()
     {
-        $suppliers = Supplier::when(
-            $this->search,
-            fn($q) =>
-            $q->where('name', 'like', '%' . $this->search . '%')
-                ->orWhere('phone', 'like', '%' . $this->search . '%')
-        )
+        $suppliers = Supplier::withCount('purchases')
+            ->when(
+                $this->search,
+                fn($q) => $q->where('name', 'like', '%' . $this->search . '%')
+                    ->orWhere('phone', 'like', '%' . $this->search . '%')
+            )
             ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
             ->paginate(15);
 
         return view('livewire.suppliers.index', [
-            'suppliers' => $suppliers,
-            'headers'   => $this->headers(),
+            'suppliers'      => $suppliers,
+            'headers'        => $this->headers(),
+            'activeCount'    => Supplier::where('is_active', true)->count(),
+            'totalPurchases' => \App\Models\Purchase::count(),
+            'totalSpent'     => \App\Models\Purchase::sum('total_amount') ?? 0,
         ])->layout('layouts.app', ['title' => 'Fournisseurs']);
     }
 }

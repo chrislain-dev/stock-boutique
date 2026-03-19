@@ -3,8 +3,16 @@
 namespace App\Livewire\Sales;
 
 use App\Enums\PaymentMethod;
+use App\Enums\ProductLocation;
+use App\Enums\ProductState;
+use App\Enums\StockMovementType;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductReturn;
 use App\Models\Sale;
+use App\Models\StockMovement;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -15,13 +23,23 @@ class Show extends Component
     public Sale $sale;
 
     // Modal ajout paiement
-    public bool   $showPaymentModal   = false;
-    public string $pay_amount         = '';
-    public string $pay_method         = 'cash';
-    public string $pay_reference      = '';
-    public string $pay_mobile         = '';
-    public string $pay_bank           = '';
-    public string $pay_notes          = '';
+    public bool   $showPaymentModal = false;
+    public string $pay_amount       = '';
+    public string $pay_method       = 'cash';
+    public string $pay_reference    = '';
+    public string $pay_mobile       = '';
+    public string $pay_bank         = '';
+    public string $pay_notes        = '';
+    public string $replacement_id = '';
+
+    // Liste des produits disponibles pour remplacement (même modèle)
+    public array $availableReplacements = [];
+
+    // Modal retour défectueux
+    public bool   $showReturnModal  = false;
+    public ?int   $returnProductId  = null;
+    public string $return_reason    = '';
+    public string $return_notes     = '';
 
     public function mount(Sale $sale): void
     {
@@ -35,14 +53,15 @@ class Show extends Component
         ]);
     }
 
+    // ─── Paiement ─────────────────────────────────────────────
     public function openPaymentModal(): void
     {
-        $this->pay_amount = (string) $this->sale->remaining_amount;
-        $this->pay_method = 'cash';
+        $this->pay_amount    = (string) $this->sale->remaining_amount;
+        $this->pay_method    = 'cash';
         $this->pay_reference = '';
-        $this->pay_mobile = '';
-        $this->pay_bank = '';
-        $this->pay_notes = '';
+        $this->pay_mobile    = '';
+        $this->pay_bank      = '';
+        $this->pay_notes     = '';
         $this->showPaymentModal = true;
     }
 
@@ -62,7 +81,7 @@ class Show extends Component
             'bank_name'             => $this->pay_bank ?: null,
             'payment_date'          => now()->toDateString(),
             'notes'                 => $this->pay_notes ?: null,
-            'created_by'            => auth()->id(),
+            'created_by'            => Auth::id(),
         ]);
 
         $this->sale->refresh()->load([
@@ -78,9 +97,123 @@ class Show extends Component
         $this->success('Paiement enregistré.');
     }
 
+    // ─── Reçu ─────────────────────────────────────────────────
     public function printReceipt(): void
     {
-        $this->redirect(route('sales.receipt', $this->sale->id));
+        $this->dispatch('open-receipt', url: route('sales.receipt', $this->sale->id));
+    }
+
+    // ─── Retour défectueux ────────────────────────────────────
+    public function openDeclareReturn(int $productId): void
+    {
+        $this->returnProductId = $productId;
+        $this->return_reason   = '';
+        $this->return_notes    = '';
+        $this->replacement_id  = '';
+
+        // Charger les produits du même modèle disponibles en stock
+        $product = Product::findOrFail($productId);
+        $this->availableReplacements = Product::where('product_model_id', $product->product_model_id)
+            ->where('state', ProductState::AVAILABLE->value)
+            ->where('id', '!=', $productId)
+            ->get()
+            ->map(fn($p) => [
+                'id'   => $p->id,
+                'name' => $p->imei ?? $p->serial_number ?? "#{$p->id}",
+            ])
+            ->toArray();
+
+        $this->showReturnModal = true;
+        $this->resetErrorBag();
+    }
+
+    public function declareReturn(): void
+    {
+        $this->validate([
+            'return_reason'     => 'required|min:5',
+            'replacement_id'    => 'nullable|exists:products,id',
+        ], [
+            'return_reason.required' => 'Décrivez la défaillance constatée.',
+            'return_reason.min'      => 'La description doit faire au moins 5 caractères.',
+        ]);
+
+        $defectiveProduct = Product::findOrFail($this->returnProductId);
+
+        DB::transaction(function () use ($defectiveProduct) {
+
+            // ── 1. Marquer le produit défectueux ──────────────────
+            $defectiveProduct->update([
+                'state'      => ProductState::DEFECTIVE->value,
+                'location'   => ProductLocation::SUPPLIER_RETURN->value,
+                'updated_by' => Auth::id(),
+            ]);
+
+            // ── 2. Enregistrer le retour ──────────────────────────
+            ProductReturn::create([
+                'product_id'            => $defectiveProduct->id,
+                'replacement_product_id' => $this->replacement_id ?: null,
+                'sale_id'               => $this->sale->id,
+                'reason'                => $this->return_reason,
+                'notes'                 => $this->return_notes ?: null,
+                'status'                => 'pending',
+                'declared_by'           => Auth::id(),
+            ]);
+
+            // ── 3. Mouvement : retour client ──────────────────────
+            StockMovement::create([
+                'product_model_id' => $defectiveProduct->product_model_id,
+                'product_id'       => $defectiveProduct->id,
+                'type'             => StockMovementType::CLIENT_RETURN->value,
+                'quantity'         => 1,
+                'quantity_before'  => 0,
+                'quantity_after'   => 1,
+                'location_from'    => ProductLocation::CLIENT->value,
+                'location_to'      => ProductLocation::SUPPLIER_RETURN->value,
+                'notes'            => "Retour client défectueux — {$this->return_reason}",
+                'created_by'       => Auth::id(),
+            ]);
+
+            // ── 4. Si remplacement choisi : sortie du stock ───────
+            if ($this->replacement_id) {
+                $replacement = Product::findOrFail($this->replacement_id);
+
+                $replacement->update([
+                    'state'      => ProductState::SOLD->value,
+                    'location'   => ProductLocation::CLIENT->value,
+                    'updated_by' => Auth::id(),
+                ]);
+
+                StockMovement::create([
+                    'product_model_id' => $replacement->product_model_id,
+                    'product_id'       => $replacement->id,
+                    'type'             => StockMovementType::SALE->value,
+                    'quantity'         => 1,
+                    'quantity_before'  => 1,
+                    'quantity_after'   => 0,
+                    'location_from'    => ProductLocation::STORE->value,
+                    'location_to'      => ProductLocation::CLIENT->value,
+                    'notes'            => "Remplacement échange défectueux — vente {$this->sale->reference}",
+                    'created_by'       => Auth::id(),
+                ]);
+            }
+        });
+
+        $this->sale->refresh()->load([
+            'items.productModel.brand',
+            'items.product',
+            'payments.createdBy',
+            'reseller',
+            'createdBy',
+            'tradeInProduct.productModel',
+        ]);
+
+        $this->showReturnModal = false;
+
+        $msg = $this->replacement_id
+            ? 'Retour déclaré et remplacement effectué.'
+            : 'Retour déclaré. Le produit est dans la file "Retours fournisseur".';
+
+        $this->success($msg);
     }
 
     public function render()

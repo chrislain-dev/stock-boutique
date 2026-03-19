@@ -2,12 +2,10 @@
 
 namespace App\Livewire\Reports;
 
-use App\Models\Sale;
-use App\Models\SaleItem;
-use App\Models\Purchase;
-use App\Models\StockMovement;
-use App\Models\Reseller;
 use App\Enums\PaymentStatus;
+use App\Models\Sale;
+use App\Models\StockMovement;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -16,14 +14,13 @@ class Index extends Component
 {
     use Toast;
 
-    public string $period     = 'month';
-    public string $dateFrom   = '';
-    public string $dateTo     = '';
-    public string $activeTab  = 'ca';
+    public string $period    = 'month';
+    public string $dateFrom  = '';
+    public string $dateTo    = '';
+    public string $activeTab = 'ca';
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
         $this->dateFrom = now()->startOfMonth()->format('Y-m-d');
         $this->dateTo   = now()->format('Y-m-d');
     }
@@ -36,13 +33,12 @@ class Index extends Component
             'month'   => [$this->dateFrom, $this->dateTo] = [now()->startOfMonth()->format('Y-m-d'), now()->format('Y-m-d')],
             'quarter' => [$this->dateFrom, $this->dateTo] = [now()->startOfQuarter()->format('Y-m-d'), now()->format('Y-m-d')],
             'year'    => [$this->dateFrom, $this->dateTo] = [now()->startOfYear()->format('Y-m-d'), now()->format('Y-m-d')],
-            'custom'  => null,
             default   => null,
         };
     }
 
     // ─── CA par période ───────────────────────────────────────
-    public function getCaStats(): array
+    private function getCaStats(): array
     {
         $sales = Sale::whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
             ->where('sale_status', 'completed')
@@ -59,21 +55,22 @@ class Index extends Component
         ];
     }
 
-    // ─── Marge et bénéfice ────────────────────────────────────
+    // ─── Marge (admin only) ───────────────────────────────────
     public function getMarginStats(): array
     {
-        $items = SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        $items = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->join('product_models', 'sale_items.product_model_id', '=', 'product_models.id')
             ->join('brands', 'product_models.brand_id', '=', 'brands.id')
             ->whereBetween('sales.created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
             ->where('sales.sale_status', 'completed')
             ->selectRaw('
-                brands.name as brand,
-                SUM(sale_items.line_total) as ca,
-                SUM(sale_items.purchase_price_snapshot * sale_items.quantity) as cost,
-                SUM(sale_items.line_total - (sale_items.purchase_price_snapshot * sale_items.quantity)) as profit,
-                COUNT(*) as qty
-            ')
+            brands.name as brand,
+            SUM(sale_items.line_total) as ca,
+            SUM(COALESCE(sale_items.purchase_price_snapshot, 0) * sale_items.quantity) as cost,
+            SUM(sale_items.line_total - (COALESCE(sale_items.purchase_price_snapshot, 0) * sale_items.quantity)) as profit,
+            COUNT(*) as qty
+        ')
             ->groupBy('brands.name')
             ->orderByDesc('profit')
             ->get();
@@ -86,20 +83,20 @@ class Index extends Component
         ];
     }
 
-    // ─── Top produits ─────────────────────────────────────────
     public function getTopProducts(): array
     {
-        return SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        return DB::table('sale_items')   // ← idem
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->join('product_models', 'sale_items.product_model_id', '=', 'product_models.id')
             ->join('brands', 'product_models.brand_id', '=', 'brands.id')
             ->whereBetween('sales.created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
             ->where('sales.sale_status', 'completed')
-            ->selectRaw('
-                brands.name || \' \' || product_models.name as product,
-                COUNT(*) as qty,
-                SUM(sale_items.line_total) as ca,
-                SUM(sale_items.line_total - (sale_items.purchase_price_snapshot * sale_items.quantity)) as profit
-            ')
+            ->selectRaw("
+            brands.name || ' ' || product_models.name as product,
+            COUNT(*) as qty,
+            SUM(sale_items.line_total) as ca,
+            SUM(sale_items.line_total - (COALESCE(sale_items.purchase_price_snapshot, 0) * sale_items.quantity)) as profit
+        ")
             ->groupBy('brands.name', 'product_models.name')
             ->orderByDesc('qty')
             ->limit(20)
@@ -108,7 +105,7 @@ class Index extends Component
     }
 
     // ─── Créances ─────────────────────────────────────────────
-    public function getCreances(): array
+    private function getCreances(): array
     {
         $clientCreances = Sale::where('payment_status', '!=', PaymentStatus::PAID->value)
             ->where('customer_type', 'client')
@@ -128,15 +125,15 @@ class Index extends Component
             ->get();
 
         return [
-            'clients'          => $clientCreances,
-            'resellers'        => $resellerCreances,
-            'total_clients'    => $clientCreances->sum('solde'),
-            'total_resellers'  => $resellerCreances->sum('solde'),
+            'clients'         => $clientCreances,
+            'resellers'       => $resellerCreances,
+            'total_clients'   => $clientCreances->sum('solde'),
+            'total_resellers' => $resellerCreances->sum('solde'),
         ];
     }
 
     // ─── Mouvements stock ─────────────────────────────────────
-    public function getStockStats(): array
+    private function getStockStats(): array
     {
         $movements = StockMovement::whereBetween('created_at', [$this->dateFrom . ' 00:00:00', $this->dateTo . ' 23:59:59'])
             ->selectRaw('type, COUNT(*) as count')
@@ -150,26 +147,21 @@ class Index extends Component
         ];
     }
 
-    // ─── Export PDF ───────────────────────────────────────────
+    // ─── Exports ──────────────────────────────────────────────
     public function exportPdf(): void
     {
-        $this->redirect(route('reports.print', [
-            'from' => $this->dateFrom,
-            'to'   => $this->dateTo,
-        ]));
+        $this->dispatch('open-tab', url: route('reports.print', ['from' => $this->dateFrom, 'to' => $this->dateTo]));
     }
 
-    // ─── Export Excel ─────────────────────────────────────────
     public function exportExcel(): void
     {
-        $this->redirect(route('reports.excel', [
-            'from' => $this->dateFrom,
-            'to'   => $this->dateTo,
-        ]));
+        $this->dispatch('open-tab', url: route('reports.excel', ['from' => $this->dateFrom, 'to' => $this->dateTo]));
     }
 
     public function render()
     {
+        $isAdmin = Auth::user()->isAdmin();
+
         $periods = [
             ['id' => 'today',   'name' => "Aujourd'hui"],
             ['id' => 'week',    'name' => 'Cette semaine'],
@@ -179,23 +171,31 @@ class Index extends Component
             ['id' => 'custom',  'name' => 'Personnalisé'],
         ];
 
-        $tabs = [
-            ['id' => 'ca',       'name' => 'CA par période'],
-            ['id' => 'margin',   'name' => 'Marge & Bénéfice'],
-            ['id' => 'products', 'name' => 'Top Produits'],
-            ['id' => 'creances', 'name' => 'Créances'],
-            ['id' => 'stock',    'name' => 'Stock'],
-        ];
+        $tabs = [['id' => 'ca', 'name' => 'CA par période']];
+        if ($isAdmin) {
+            $tabs[] = ['id' => 'margin', 'name' => 'Marge & Bénéfice'];
+        }
+        $tabs[] = ['id' => 'products', 'name' => 'Top Produits'];
+        $tabs[] = ['id' => 'creances', 'name' => 'Créances'];
+        $tabs[] = ['id' => 'stock',    'name' => 'Stock'];
 
-        $caStats      = $this->getCaStats();
-        $marginStats  = $this->getMarginStats();
-        $topProducts  = $this->getTopProducts();
-        $creances     = $this->getCreances();
-        $stockStats   = $this->getStockStats();
+        // Si l'onglet actif n'est plus accessible (ex: margin pour non-admin),
+        // on repasse sur ca
+        $validTabs = array_column($tabs, 'id');
+        if (!in_array($this->activeTab, $validTabs)) {
+            $this->activeTab = 'ca';
+        }
+
+        $caStats     = $this->getCaStats();
+        $marginStats = $this->getMarginStats();
+        $topProducts = $this->getTopProducts();
+        $creances    = $this->getCreances();
+        $stockStats  = $this->getStockStats();
 
         return view('livewire.reports.index', compact(
             'periods',
             'tabs',
+            'isAdmin',
             'caStats',
             'marginStats',
             'topProducts',

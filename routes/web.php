@@ -15,8 +15,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', function () {
         ActivityLogService::log(
             action: 'logout',
-            description: 'Déconnexion — ' . auth()->user()->name,
-            model: auth()->user(),
+            description: 'Déconnexion — ' . Auth::user()->name,
+            model: Auth::user(),
         );
         Auth::logout();
         session()->invalidate();
@@ -40,8 +40,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales', \App\Livewire\Sales\Index::class)->name('sales.index');
     Route::get('/sales/create', \App\Livewire\Sales\Create::class)->name('sales.create');
     Route::get('/sales/{sale}', \App\Livewire\Sales\Show::class)->name('sales.show');
-    Route::get('/sales/{sale}/receipt', \App\Livewire\Sales\Receipt::class)->name('sales.receipt');
+    // Route::get('/sales/{sale}/receipt', \App\Livewire\Sales\Receipt::class)->name('sales.receipt');
     Route::get('/resellers', \App\Livewire\Resellers\Index::class)->name('resellers.index');
+
+    Route::get('/sales/{sale}/receipt', function (\App\Models\Sale $sale) {
+        // Optionnel : vérifier que l'utilisateur a accès à cette vente
+        abort_if(
+            ! Auth::check(),
+            403
+        );
+
+        $sale->load(['items.productModel', 'items.product', 'payments', 'reseller', 'tradeInProduct', 'createdBy']);
+
+        return view('livewire.sales.receipt', compact('sale'));
+    })->name('sales.receipt');
 
     // ─── Stock ────────────────────────────────────────────────
     Route::get('/purchases', \App\Livewire\Purchases\Index::class)->name('purchases.index');
@@ -60,10 +72,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/activity-logs', \App\Livewire\ActivityLogs\Index::class)->name('activity-logs.index');
     Route::get('/users', \App\Livewire\Users\Index::class)->name('users.index');
     Route::get('/settings', \App\Livewire\Settings\Index::class)->name('settings.index');
+
+    Route::get('/reprises', \App\Livewire\Reprises\Index::class)->name('reprises.index');
+
+    Route::get('/retours-fournisseur', \App\Livewire\SupplierReturns\Index::class)->name('supplier-returns.index');
 });
 
 Route::get('/', function () {
-    return auth()->check()
+    return Auth::check()
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 });

@@ -128,6 +128,6 @@ class Dashboard extends Component
             'topProducts',
             'lastSales',
             'alerts'
-        ))->layout('layouts.app', ['title' => 'Dashboard']);
+        ))->layout('layouts.app', ['title' => 'Tableau de bord']);
     }
 }

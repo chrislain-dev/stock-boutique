@@ -11,6 +11,8 @@ class Index extends Component
 {
     use WithPagination, Toast;
 
+    public string $viewMode = 'grid';
+
     // ─── Recherche & tri ──────────────────────────────────────
     public string $search = '';
     public array $sortBy  = ['column' => 'name', 'direction' => 'asc'];
@@ -130,18 +132,18 @@ class Index extends Component
 
     public function render()
     {
-        $brands = Brand::withCount('productModels')
-            ->when(
-                $this->search,
-                fn($q) =>
-                $q->where('name', 'like', '%' . $this->search . '%')
-            )
+        $brands = Brand::withCount([
+            'products as products_count' => fn($q) => $q->where('state', 'available')
+        ])
+            ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
             ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
             ->paginate(15);
 
         return view('livewire.brands.index', [
-            'brands'  => $brands,
-            'headers' => $this->headers(),
+            'brands'        => $brands,
+            'headers'       => $this->headers(),
+            'activeCount'   => Brand::where('is_active', true)->count(),
+            'inactiveCount' => Brand::where('is_active', false)->count(),
         ])->layout('layouts.app', ['title' => 'Marques']);
     }
 }

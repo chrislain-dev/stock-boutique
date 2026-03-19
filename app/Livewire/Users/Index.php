@@ -169,7 +169,12 @@ class Index extends Component
             'name' => $r->label(),
         ])->toArray();
 
-        return view('livewire.users.index', compact('users', 'roles'))
-            ->layout('layouts.app', ['title' => 'Utilisateurs']);
+        return view('livewire.users.index', [
+            'users'         => $users,
+            'roles'         => $roles,
+            'activeCount'   => User::where('is_active', true)->count(),
+            'inactiveCount' => User::where('is_active', false)->count(),
+            'adminCount'    => User::where('role', \App\Enums\UserRole::ADMIN)->count(),
+        ])->layout('layouts.app', ['title' => 'Utilisateurs']);
     }
 }

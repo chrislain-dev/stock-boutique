@@ -1,232 +1,429 @@
-<div>
-    <x-mary-header
-        title="{{ $sale->reference }}"
-        subtitle="{{ $sale->created_at->format('d/m/Y H:i') }}"
-        icon="o-shopping-bag"
-    >
-        <x-slot:actions>
-            <x-mary-button label="Retour" icon="o-arrow-left" class="btn-ghost btn-sm" link="{{ route('sales.index') }}" />
-            <x-mary-button label="Imprimer reçu" icon="o-printer" class="btn-outline btn-sm" wire:click="printReceipt" />
-            @if($sale->remaining_amount > 0)
-            <x-mary-button label="Ajouter paiement" icon="o-banknotes" class="btn-primary btn-sm" wire:click="openPaymentModal" />
-            @endif
-        </x-slot:actions>
-    </x-mary-header>
+<div x-data x-init="
+    $nextTick(() => {
+        document.querySelectorAll('.page-header, .main-col, .side-col').forEach((el, i) => {
+            el.style.opacity = 0;
+            el.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                el.style.transition = 'opacity .35s cubic-bezier(.22,1,.36,1), transform .35s cubic-bezier(.22,1,.36,1)';
+                el.style.opacity = 1;
+                el.style.transform = 'translateY(0)';
+            }, i * 70);
+        });
+    })
+" @open-receipt.window="window.open($event.detail.url, '_blank')">
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <style>
+        @keyframes lineIn { from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes badgePop { 0%{transform:scale(.75);opacity:0;}70%{transform:scale(1.07);}100%{transform:scale(1);opacity:1;} }
+        @keyframes spin { to{transform:rotate(360deg);} }
+        @keyframes errorIn { from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:translateY(0);} }
+        .item-row  { animation: lineIn .25s cubic-bezier(.22,1,.36,1) both; }
+        .badge-pop { animation: badgePop .22s cubic-bezier(.34,1.56,.64,1) both; }
+        .error-msg { animation: errorIn .18s ease both; }
+        .hover-row { transition: background-color .12s ease, box-shadow .12s ease; }
+        .hover-row:hover { background-color:#fafafa; box-shadow:inset 3px 0 0 0 #e5e7eb; }
+        .info-row  { transition: background-color .12s ease; }
+        .info-row:hover { background-color:#fafafa; }
+        button:active:not(:disabled) { transform:scale(0.97); }
+        input:focus,select:focus,textarea:focus { box-shadow:0 0 0 3px rgba(24,24,27,.07); }
+        .field-error input,.field-error select { border-color:#fca5a5!important;background-color:#fff5f5!important; }
+    </style>
 
-        {{-- Colonne gauche --}}
-        <div class="lg:col-span-2 space-y-6">
-
-            {{-- Produits --}}
-            <x-mary-card title="Articles vendus">
-                @foreach($sale->items as $item)
-                <div class="flex justify-between items-center py-3 border-b border-base-200 last:border-0">
-                    <div>
-                        <p class="font-medium text-sm">{{ $item->productModel->display_label }}</p>
-                        @if($item->product)
-                        <p class="text-xs font-mono text-gray-400">
-                            {{ $item->product->imei ?? $item->product->serial_number ?? '—' }}
-                        </p>
-                        @endif
-                        @if($item->discount > 0)
-                        <p class="text-xs text-warning">
-                            Prix: {{ number_format($item->unit_price, 0, ',', ' ') }} —
-                            Remise: {{ number_format($item->discount, 0, ',', ' ') }}
-                            {{ config('boutique.devise_symbole') }}
-                        </p>
-                        @endif
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold">
-                            {{ number_format($item->line_total, 0, ',', ' ') }}
-                            {{ config('boutique.devise_symbole') }}
-                        </p>
-                        @if(auth()->user()->isAdmin())
-                        <p class="text-xs text-gray-400">
-                            Marge: {{ number_format($item->profit, 0, ',', ' ') }}
-                            {{ config('boutique.devise_symbole') }}
-                        </p>
-                        @endif
-                    </div>
-                </div>
-                @endforeach
-
-                @if($sale->is_trade_in)
-                <div class="flex justify-between items-center py-2 text-warning border-b border-base-200">
-                    <div>
-                        <p class="text-sm font-medium">Troc déduit</p>
-                        @if($sale->tradeInProduct)
-                        <p class="text-xs font-mono text-gray-400">
-                            {{ $sale->tradeInProduct->imei ?? $sale->tradeInProduct->serial_number ?? '—' }}
-                        </p>
-                        @endif
-                        @if($sale->trade_in_notes)
-                        <p class="text-xs text-gray-400">{{ $sale->trade_in_notes }}</p>
-                        @endif
-                    </div>
-                    <p class="font-bold">
-                        - {{ number_format($sale->trade_in_value, 0, ',', ' ') }}
-                        {{ config('boutique.devise_symbole') }}
-                    </p>
-                </div>
-                @endif
-
-                <div class="flex justify-between font-bold text-lg mt-2 pt-2">
-                    <span>Total net</span>
-                    <span class="text-primary">
-                        {{ number_format($sale->total_amount, 0, ',', ' ') }}
-                        {{ config('boutique.devise_symbole') }}
-                    </span>
-                </div>
-            </x-mary-card>
-
-            {{-- Historique paiements --}}
-            <x-mary-card title="Paiements ({{ $sale->payments->count() }})">
-                @forelse($sale->payments as $payment)
-                <div class="flex justify-between items-center py-2 border-b border-base-200 last:border-0">
-                    <div>
-                        <p class="text-sm font-medium">{{ $payment->payment_method->label() }}</p>
-                        <p class="text-xs text-gray-400">
-                            {{ $payment->payment_date->format('d/m/Y') }}
-                            @if($payment->transaction_reference) · {{ $payment->transaction_reference }} @endif
-                            @if($payment->createdBy) · {{ $payment->createdBy->name }} @endif
-                        </p>
-                    </div>
-                    <p class="font-bold text-success">
-                        {{ number_format($payment->amount, 0, ',', ' ') }}
-                        {{ config('boutique.devise_symbole') }}
-                    </p>
-                </div>
-                @empty
-                <p class="text-sm text-gray-400 text-center py-4">Aucun paiement enregistré.</p>
-                @endforelse
-            </x-mary-card>
+    {{-- Header --}}
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3 page-header">
+        <div>
+            <div class="flex items-center gap-2.5 mb-0.5">
+                <span class="text-xl font-semibold tracking-tight text-gray-900 font-mono">{{ $sale->reference }}</span>
+                @php
+                    $stColor = match($sale->sale_status) {
+                        'completed'=>'bg-green-50 text-green-800 ring-green-100',
+                        'cancelled'=>'bg-red-50 text-red-700 ring-red-100',
+                        'partial_return'=>'bg-amber-50 text-amber-800 ring-amber-100',
+                        default=>'bg-gray-100 text-gray-600 ring-gray-200',
+                    };
+                    $stDot = match($sale->sale_status) {
+                        'completed'=>'bg-green-500','cancelled'=>'bg-red-500','partial_return'=>'bg-amber-500',default=>'bg-gray-400',
+                    };
+                    $stLabel = match($sale->sale_status) {
+                        'completed'=>'Complétée','cancelled'=>'Annulée','partial_return'=>'Retour partiel','full_return'=>'Retour total',default=>$sale->sale_status,
+                    };
+                @endphp
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium ring-1 badge-pop {{ $stColor }}">
+                    <span class="w-1.5 h-1.5 rounded-full {{ $stDot }}"></span>{{ $stLabel }}
+                </span>
+            </div>
+            <p class="text-sm text-gray-400">{{ $sale->created_at->format('d/m/Y') }}<span class="text-gray-300 mx-1">·</span>{{ $sale->created_at->format('H:i') }}</p>
         </div>
-
-        {{-- Colonne droite --}}
-        <div class="space-y-6">
-            <x-mary-card title="Résumé">
-                <div class="space-y-3">
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Client</span>
-                        <span class="font-medium text-right">
-                            @if($sale->customer_type === 'reseller')
-                                {{ $sale->reseller?->name ?? '—' }}
-                                <span class="badge badge-primary badge-xs">Rev.</span>
-                            @else
-                                {{ $sale->customer_name ?: 'Anonyme' }}
-                            @endif
-                        </span>
-                    </div>
-                    @if($sale->customer_phone)
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Téléphone</span>
-                        <span class="text-sm">{{ $sale->customer_phone }}</span>
-                    </div>
-                    @endif
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Statut paiement</span>
-                        <x-mary-badge
-                            value="{{ $sale->payment_status->label() }}"
-                            class="badge-sm badge-{{ $sale->payment_status->color() }}"
-                        />
-                    </div>
-                    <div class="divider my-1"></div>
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Total</span>
-                        <span class="font-bold">
-                            {{ number_format($sale->total_amount, 0, ',', ' ') }}
-                            {{ config('boutique.devise_symbole') }}
-                        </span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Payé</span>
-                        <span class="font-bold text-success">
-                            {{ number_format($sale->paid_amount, 0, ',', ' ') }}
-                            {{ config('boutique.devise_symbole') }}
-                        </span>
-                    </div>
-                    @if($sale->remaining_amount > 0)
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Reste dû</span>
-                        <span class="font-bold text-error">
-                            {{ number_format($sale->remaining_amount, 0, ',', ' ') }}
-                            {{ config('boutique.devise_symbole') }}
-                        </span>
-                    </div>
-                    @if($sale->due_date)
-                    <div class="flex justify-between">
-                        <span class="text-sm text-gray-500">Échéance</span>
-                        <span class="text-sm {{ $sale->is_overdue ? 'text-error font-bold' : '' }}">
-                            {{ $sale->due_date->format('d/m/Y') }}
-                            @if($sale->is_overdue) ⚠️ @endif
-                        </span>
-                    </div>
-                    @endif
-                    @endif
-                    @if($sale->notes)
-                    <div>
-                        <p class="text-xs text-gray-400">Notes</p>
-                        <p class="text-sm">{{ $sale->notes }}</p>
-                    </div>
-                    @endif
-                </div>
-            </x-mary-card>
-
-            <x-mary-card title="Traçabilité">
-                <div class="space-y-2">
-                    <div>
-                        <p class="text-xs text-gray-400">Créé le</p>
-                        <p class="text-sm">{{ $sale->created_at->format('d/m/Y H:i') }}</p>
-                    </div>
-                    @if($sale->createdBy)
-                    <div>
-                        <p class="text-xs text-gray-400">Par</p>
-                        <p class="text-sm">{{ $sale->createdBy->name }}</p>
-                    </div>
-                    @endif
-                </div>
-            </x-mary-card>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('sales.index') }}" class="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all duration-150">
+                <x-heroicon-o-arrow-left class="w-4 h-4"/>Retour
+            </a>
+            <button wire:click="printReceipt" class="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all duration-150">
+                <x-heroicon-o-printer class="w-4 h-4"/>Imprimer reçu
+            </button>
+            @if($sale->remaining_amount > 0)
+            <button wire:click="openPaymentModal" class="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150">
+                <x-heroicon-o-banknotes class="w-4 h-4"/>Ajouter paiement
+            </button>
+            @endif
         </div>
     </div>
 
-    {{-- Modal ajout paiement --}}
-    <x-mary-modal wire:model="showPaymentModal" title="Ajouter un paiement">
-        <div class="space-y-4">
-            <div class="p-3 bg-base-200 rounded-lg text-center">
-                <p class="text-xs text-gray-400">Reste à payer</p>
-                <p class="text-xl font-bold text-error">
-                    {{ number_format($sale->remaining_amount, 0, ',', ' ') }}
-                    {{ config('boutique.devise_symbole') }}
-                </p>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {{-- Colonne principale --}}
+        <div class="lg:col-span-2 space-y-4 main-col">
+
+            {{-- Articles --}}
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition-shadow duration-200 hover:shadow-sm">
+                <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <p class="text-sm font-medium">Articles vendus</p>
+                    <span class="text-[11px] text-gray-400">{{ $sale->items->count() }} article(s)</span>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @foreach($sale->items as $i => $item)
+                    <div class="hover-row px-5 py-4 item-row" style="animation-delay:{{ $i*40 }}ms">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-800 leading-snug">{{ $item->productModel->display_label }}</p>
+                                @if($item->product)
+                                <p class="text-[11px] font-mono text-gray-400 mt-0.5 tracking-wide">{{ $item->product->imei ?? $item->product->serial_number ?? '—' }}</p>
+                                @endif
+                                @if($item->discount > 0)
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[11px] text-gray-400">Prix : {{ number_format($item->unit_price, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700">−{{ number_format($item->discount, 0, ',', ' ') }} remise</span>
+                                </div>
+                                @endif
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="text-sm font-semibold text-gray-900">{{ number_format($item->line_total, 0, ',', ' ') }}<span class="text-[11px] font-normal text-gray-400"> {{ config('boutique.devise_symbole') }}</span></p>
+                                @if(auth()->user()->isAdmin())
+                                <p class="text-[11px] text-gray-400 mt-0.5">Marge : <span class="text-green-600 font-medium">{{ number_format($item->profit, 0, ',', ' ') }}</span></p>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Bouton retour défectueux --}}
+                        @if($item->product && $item->product->state === \App\Enums\ProductState::SOLD)
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <button wire:click="openDeclareReturn({{ $item->product->id }})"
+                                    class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-all duration-150">
+                                <x-heroicon-o-arrow-uturn-left class="w-3 h-3"/>
+                                Déclarer un retour défectueux
+                            </button>
+                        </div>
+                        @elseif($item->product && $item->product->state === \App\Enums\ProductState::DEFECTIVE)
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <span class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-medium bg-red-50 text-red-400 border border-red-100">
+                                <x-heroicon-o-exclamation-triangle class="w-3 h-3"/>
+                                Retour déclaré — en attente fournisseur
+                            </span>
+                        </div>
+                        @endif
+                    </div>
+                    @endforeach
+
+                    @if($sale->is_trade_in)
+                    <div class="hover-row px-5 py-4 bg-amber-50/40">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <p class="text-sm font-medium text-amber-700">Troc déduit</p>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">Trade-in</span>
+                                </div>
+                                @if($sale->tradeInProduct)
+                                <p class="text-[11px] font-mono text-gray-400 mt-0.5">{{ $sale->tradeInProduct->imei ?? $sale->tradeInProduct->serial_number ?? '—' }}</p>
+                                @endif
+                                @if($sale->trade_in_notes)
+                                <p class="text-[11px] text-gray-400 italic mt-0.5">{{ $sale->trade_in_notes }}</p>
+                                @endif
+                            </div>
+                            <p class="text-sm font-semibold text-amber-600 shrink-0">
+                                −{{ number_format($sale->trade_in_value, 0, ',', ' ') }}<span class="text-[11px] font-normal text-gray-400"> {{ config('boutique.devise_symbole') }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+                <div class="px-5 py-4 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">Total net</span>
+                    <span class="text-base font-bold text-gray-900">{{ number_format($sale->total_amount, 0, ',', ' ') }}<span class="text-sm font-normal text-gray-400"> {{ config('boutique.devise_symbole') }}</span></span>
+                </div>
             </div>
-            <x-mary-select
-                label="Mode de paiement *"
-                wire:model.live="pay_method"
-                :options="$paymentMethods"
-                option-value="id"
-                option-label="name"
-            />
-            <x-mary-input
-                label="Montant *"
-                wire:model="pay_amount"
-                type="number"
-                :suffix="config('boutique.devise_symbole')"
-            />
-            @if($pay_method === 'mobile_money')
-            <x-mary-input label="Numéro Mobile Money" wire:model="pay_mobile" icon="o-device-phone-mobile" />
-            <x-mary-input label="Référence" wire:model="pay_reference" icon="o-hashtag" />
-            @endif
-            @if($pay_method === 'bank_transfer' || $pay_method === 'cheque')
-            <x-mary-input label="Banque" wire:model="pay_bank" icon="o-building-library" />
-            <x-mary-input label="Référence" wire:model="pay_reference" icon="o-hashtag" />
-            @endif
-            <x-mary-input label="Notes" wire:model="pay_notes" />
+
+            {{-- Paiements --}}
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition-shadow duration-200 hover:shadow-sm">
+                <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <p class="text-sm font-medium">Paiements</p>
+                    <span class="text-[11px] text-gray-400">{{ $sale->payments->count() }} paiement(s)</span>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @forelse($sale->payments as $i => $payment)
+                    <div class="hover-row px-5 py-3.5 item-row" style="animation-delay:{{ $i*35 }}ms">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                                    <x-heroicon-o-banknotes class="w-4 h-4 text-green-600"/>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">{{ $payment->payment_method->label() }}</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">
+                                        {{ $payment->payment_date->format('d/m/Y') }}
+                                        @if($payment->transaction_reference)<span class="text-gray-300 mx-1">·</span><span class="font-mono">{{ $payment->transaction_reference }}</span>@endif
+                                        @if($payment->createdBy)<span class="text-gray-300 mx-1">·</span>{{ $payment->createdBy->name }}@endif
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-semibold text-green-700 shrink-0">
+                                +{{ number_format($payment->amount, 0, ',', ' ') }}<span class="text-[11px] font-normal text-gray-400"> {{ config('boutique.devise_symbole') }}</span>
+                            </span>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="flex flex-col items-center justify-center py-10">
+                        <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-2">
+                            <x-heroicon-o-banknotes class="w-4 h-4 text-gray-300"/>
+                        </div>
+                        <p class="text-sm text-gray-400">Aucun paiement enregistré</p>
+                    </div>
+                    @endforelse
+                </div>
+            </div>
         </div>
-        <x-slot:actions>
-            <x-mary-button label="Annuler" wire:click="$set('showPaymentModal', false)" class="btn-ghost" />
-            <x-mary-button label="Enregistrer" wire:click="addPayment" class="btn-primary" />
-        </x-slot:actions>
-    </x-mary-modal>
+
+        {{-- Colonne droite --}}
+        <div class="space-y-4 side-col">
+
+            {{-- Résumé --}}
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition-shadow duration-200 hover:shadow-sm">
+                <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <p class="text-sm font-medium">Résumé</p>
+                    @php
+                        $payColor = match($sale->payment_status->value ?? $sale->payment_status) {
+                            'paid'=>'bg-green-50 text-green-800 ring-green-100',
+                            'partial'=>'bg-amber-50 text-amber-800 ring-amber-100',
+                            'unpaid'=>'bg-red-50 text-red-700 ring-red-100',
+                            default=>'bg-gray-100 text-gray-600 ring-gray-200',
+                        };
+                        $payDot = match($sale->payment_status->value ?? $sale->payment_status) {
+                            'paid'=>'bg-green-500','partial'=>'bg-amber-500','unpaid'=>'bg-red-500',default=>'bg-gray-400',
+                        };
+                    @endphp
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium ring-1 badge-pop {{ $payColor }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ $payDot }}"></span>{{ $sale->payment_status->label() }}
+                    </span>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <div class="info-row px-5 py-3 flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Client</span>
+                        @if($sale->customer_type === 'reseller')
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-md bg-violet-50 flex items-center justify-center text-[9px] font-bold text-violet-600 shrink-0">{{ strtoupper(substr($sale->reseller?->name ?? 'R', 0, 2)) }}</div>
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-gray-800">{{ $sale->reseller?->name ?? '—' }}</p>
+                                <span class="text-[10px] text-violet-600 font-medium">Revendeur</span>
+                            </div>
+                        </div>
+                        @else
+                        <span class="text-sm font-medium text-gray-800">{{ $sale->customer_name ?: 'Anonyme' }}</span>
+                        @endif
+                    </div>
+                    @if($sale->customer_phone)
+                    <div class="info-row px-5 py-3 flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Téléphone</span>
+                        <span class="text-sm font-mono text-gray-700">{{ $sale->customer_phone }}</span>
+                    </div>
+                    @endif
+                    <div class="px-5 py-3 bg-gray-50/60">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-gray-400">Total</span>
+                            <span class="text-sm font-semibold text-gray-800">{{ number_format($sale->total_amount, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}</span>
+                        </div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-gray-400">Payé</span>
+                            <span class="text-sm font-semibold text-green-700">{{ number_format($sale->paid_amount, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}</span>
+                        </div>
+                        @if($sale->remaining_amount > 0)
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <span class="text-xs text-red-400 font-medium">Reste dû</span>
+                            <span class="text-sm font-bold text-red-600">{{ number_format($sale->remaining_amount, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    @if($sale->remaining_amount > 0 && $sale->due_date)
+                    @php $overdue = $sale->is_overdue ?? $sale->due_date->isPast(); @endphp
+                    <div class="info-row px-5 py-3 flex items-center justify-between {{ $overdue ? 'bg-red-50/30' : '' }}">
+                        <span class="text-xs {{ $overdue ? 'text-red-400' : 'text-gray-400' }}">Échéance</span>
+                        <span class="text-sm font-medium {{ $overdue ? 'text-red-600' : 'text-gray-700' }}">
+                            {{ $sale->due_date->format('d/m/Y') }}@if($overdue)<span class="text-[10px] font-normal ml-1 text-red-400">· dépassée</span>@endif
+                        </span>
+                    </div>
+                    @endif
+                    @if($sale->notes)
+                    <div class="px-5 py-3">
+                        <p class="text-xs text-gray-400 mb-1">Notes</p>
+                        <p class="text-sm text-gray-700 leading-relaxed">{{ $sale->notes }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Traçabilité --}}
+            <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition-shadow duration-200 hover:shadow-sm">
+                <div class="px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+                    <p class="text-sm font-medium">Traçabilité</p>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    <div class="info-row px-5 py-3 flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Vendu le</span>
+                        <span class="text-sm text-gray-700 tabular-nums">
+                            {{ $sale->created_at->locale('fr')->translatedFormat('d F Y') }}
+                            <span class="text-gray-400">· à {{ $sale->created_at->locale('fr')->translatedFormat('H\hi') }}</span>
+                        </span>
+                    </div>
+                    @if($sale->createdBy)
+                    <div class="info-row px-5 py-3 flex items-center justify-between">
+                        <span class="text-xs text-gray-400">Par</span>
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-md bg-gray-900 flex items-center justify-center text-[9px] font-bold text-white shrink-0">{{ strtoupper(substr($sale->createdBy->name, 0, 2)) }}</div>
+                            <span class="text-sm text-gray-700">{{ $sale->createdBy->name }}</span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    {{-- ─── Modal : Ajouter paiement ─────────────────────────────────── --}}
+    <div x-data="{ open: @entangle('showPaymentModal').live }" x-cloak @keydown.escape.window="$wire.set('showPaymentModal',false)">
+        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-40 bg-black/25 backdrop-blur-[3px]" wire:click="$set('showPaymentModal',false)"></div>
+        <div x-show="open" x-transition:enter="transition ease-out duration-250" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-2" class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div class="relative bg-white rounded-2xl shadow-2xl shadow-gray-200/80 border border-gray-100 w-full max-w-md pointer-events-auto">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div><h2 class="text-base font-semibold text-gray-900">Ajouter un paiement</h2><p class="text-xs text-gray-400 mt-0.5">Enregistrer un encaissement</p></div>
+                    <button wire:click="$set('showPaymentModal',false)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 hover:rotate-90 transition-all duration-200"><x-heroicon-o-x-mark class="w-4 h-4"/></button>
+                </div>
+                <div class="mx-6 mt-5 flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-xl">
+                    <div>
+                        <p class="text-xs text-red-400 font-medium uppercase tracking-wider">Reste à payer</p>
+                        <p class="text-xl font-bold text-red-600 mt-0.5">{{ number_format($sale->remaining_amount, 0, ',', ' ') }}<span class="text-sm font-normal text-red-400"> {{ config('boutique.devise_symbole') }}</span></p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-500"/></div>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Mode de paiement <span class="text-red-400">*</span></label>
+                        <select wire:model.live="pay_method" class="w-full h-9 px-3 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150 cursor-pointer">
+                            @foreach($paymentMethods as $pm)<option value="{{ $pm['id'] }}">{{ $pm['name'] }}</option>@endforeach
+                        </select>
+                        @error('pay_method')<p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1"><x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}</p>@enderror
+                    </div>
+                    <div class="{{ $errors->has('pay_amount') ? 'field-error' : '' }}">
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Montant <span class="text-red-400">*</span></label>
+                        <div class="relative">
+                            <input wire:model="pay_amount" type="number" class="w-full h-9 pl-3 pr-14 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 select-none">{{ config('boutique.devise_symbole') }}</span>
+                        </div>
+                        @error('pay_amount')<p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1"><x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}</p>@enderror
+                    </div>
+                    @if($pay_method === 'mobile_money')
+                    <div x-data x-init="$el.style.opacity=0;$el.style.transform='translateY(4px)';requestAnimationFrame(()=>{$el.style.transition='opacity .2s ease,transform .2s ease';$el.style.opacity=1;$el.style.transform='translateY(0)'})" class="grid grid-cols-2 gap-3">
+                        <div><label class="block text-xs font-medium text-gray-600 mb-1.5">Numéro Mobile Money</label><div class="relative"><x-heroicon-o-device-phone-mobile class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"/><input wire:model="pay_mobile" class="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/></div></div>
+                        <div><label class="block text-xs font-medium text-gray-600 mb-1.5">Référence</label><div class="relative"><x-heroicon-o-hashtag class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"/><input wire:model="pay_reference" class="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150 font-mono"/></div></div>
+                    </div>
+                    @endif
+                    @if($pay_method === 'bank_transfer' || $pay_method === 'cheque')
+                    <div x-data x-init="$el.style.opacity=0;$el.style.transform='translateY(4px)';requestAnimationFrame(()=>{$el.style.transition='opacity .2s ease,transform .2s ease';$el.style.opacity=1;$el.style.transform='translateY(0)'})" class="grid grid-cols-2 gap-3">
+                        <div><label class="block text-xs font-medium text-gray-600 mb-1.5">Banque</label><div class="relative"><x-heroicon-o-building-library class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"/><input wire:model="pay_bank" class="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/></div></div>
+                        <div><label class="block text-xs font-medium text-gray-600 mb-1.5">Référence</label><div class="relative"><x-heroicon-o-hashtag class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"/><input wire:model="pay_reference" class="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150 font-mono"/></div></div>
+                    </div>
+                    @endif
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Notes</label>
+                        <input wire:model="pay_notes" class="w-full h-9 px-3 text-sm border border-gray-200 rounded-xl outline-none bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
+                    <button wire:click="$set('showPaymentModal',false)" class="h-9 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 transition-all duration-150">Annuler</button>
+                    <button wire:click="addPayment" wire:loading.attr="disabled" wire:loading.class="opacity-75 cursor-wait" class="h-9 px-4 rounded-xl bg-gray-900 text-white text-sm hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md disabled:opacity-75 disabled:cursor-wait disabled:translate-y-0 transition-all duration-150 flex items-center gap-1.5">
+                        <svg wire:loading wire:target="addPayment" class="w-3.5 h-3.5" style="animation:spin .7s linear infinite" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                        <x-heroicon-o-check wire:loading.remove wire:target="addPayment" class="w-4 h-4"/>Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    {{-- ─── Modal : Retour défectueux ────────────────────────────────── --}}
+    <div x-data="{ open: @entangle('showReturnModal').live }" x-cloak @keydown.escape.window="$wire.set('showReturnModal',false)">
+        <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-40 bg-black/25 backdrop-blur-[3px]" wire:click="$set('showReturnModal',false)"></div>
+        <div x-show="open" x-transition:enter="transition ease-out duration-250" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-2" class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div class="relative bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-md pointer-events-auto">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div><h2 class="text-base font-semibold text-gray-900">Déclarer un retour défectueux</h2><p class="text-xs text-gray-400 mt-0.5">Le produit sera placé dans la file "Retours fournisseur"</p></div>
+                    <button wire:click="$set('showReturnModal',false)" class="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 hover:rotate-90 transition-all duration-200"><x-heroicon-o-x-mark class="w-4 h-4"/></button>
+                </div>
+                <div class="mx-6 mt-5 flex items-center gap-3 p-3.5 bg-red-50 border border-red-100 rounded-xl">
+                    <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-500 shrink-0"/>
+                    <div><p class="text-sm font-medium text-red-800">Produit défectueux</p><p class="text-[11px] text-red-600 mt-0.5">Il sera retiré du stock et marqué à renvoyer au fournisseur.</p></div>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Défaillance constatée <span class="text-red-400">*</span></label>
+                        <textarea wire:model="return_reason" rows="3" placeholder="Ex: Écran qui clignote, micro HS, batterie qui gonfle..."
+                                  class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none hover:border-gray-300 focus:border-gray-400 resize-none transition-all duration-150 leading-relaxed"></textarea>
+                        @error('return_reason')<p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1"><x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">
+                            Produit de remplacement
+                            <span class="text-gray-400 font-normal">(optionnel)</span>
+                        </label>
+
+                        @if(count($availableReplacements) > 0)
+                        <select wire:model="replacement_id"
+                                class="w-full h-9 px-3 text-sm border border-gray-200 rounded-xl outline-none
+                                    bg-white hover:border-gray-300 focus:border-gray-400 transition-all duration-150 cursor-pointer">
+                            <option value="">— Aucun remplacement immédiat</option>
+                            @foreach($availableReplacements as $r)
+                            <option value="{{ $r['id'] }}">{{ $r['name'] }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-[11px] text-gray-400 mt-1">
+                            {{ count($availableReplacements) }} unité(s) disponible(s) du même modèle
+                        </p>
+
+                        @else
+                        <div class="flex items-center gap-2.5 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                            <x-heroicon-o-exclamation-triangle class="w-4 h-4 text-amber-500 shrink-0"/>
+                            <p class="text-xs text-amber-700">
+                                Aucun stock disponible pour ce modèle.
+                                Le client devra être rappelé quand un exemplaire arrive.
+                            </p>
+                        </div>
+                        @endif
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1.5">Notes internes (optionnel)</label>
+                        <textarea wire:model="return_notes" rows="2" placeholder="Informations pour le suivi interne..."
+                                  class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none hover:border-gray-300 focus:border-gray-400 resize-none transition-all duration-150 leading-relaxed"></textarea>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-2xl">
+                    <button wire:click="$set('showReturnModal',false)" class="h-9 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 transition-all duration-150">Annuler</button>
+                    <button wire:click="declareReturn" wire:loading.attr="disabled" wire:loading.class="opacity-75 cursor-wait"
+                            class="h-9 px-5 rounded-xl bg-red-500 text-white text-sm hover:bg-red-600 hover:shadow-md hover:shadow-red-200/60 disabled:opacity-75 disabled:cursor-wait transition-all duration-150 flex items-center gap-1.5">
+                        <svg wire:loading wire:target="declareReturn" class="w-3.5 h-3.5" style="animation:spin .7s linear infinite" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                        <x-heroicon-o-arrow-uturn-left wire:loading.remove wire:target="declareReturn" class="w-4 h-4"/>
+                        Déclarer le retour
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>

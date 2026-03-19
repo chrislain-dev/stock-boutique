@@ -31,33 +31,19 @@ class Index extends Component
     {
         $logs = ActivityLog::query()
             ->with('user')
-            ->when(
-                $this->search,
-                fn($q) =>
-                $q->where('description', 'ilike', "%{$this->search}%")
-            )
-            ->when(
-                $this->actionFilter,
-                fn($q) =>
-                $q->where('action', $this->actionFilter)
-            )
-            ->when(
-                $this->userFilter,
-                fn($q) =>
-                $q->where('user_id', $this->userFilter)
-            )
-            ->when(
-                $this->dateFrom,
-                fn($q) =>
-                $q->whereDate('created_at', '>=', $this->dateFrom)
-            )
-            ->when(
-                $this->dateTo,
-                fn($q) =>
-                $q->whereDate('created_at', '<=', $this->dateTo)
-            )
+            ->when($this->search,       fn($q) => $q->where('description', 'ilike', "%{$this->search}%"))
+            ->when($this->actionFilter, fn($q) => $q->where('action', $this->actionFilter))
+            ->when($this->userFilter,   fn($q) => $q->where('user_id', $this->userFilter))
+            ->when($this->dateFrom,     fn($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo,       fn($q) => $q->whereDate('created_at', '<=', $this->dateTo))
             ->orderByDesc('created_at')
             ->paginate(25);
+
+        // Compteurs globaux (indépendants des filtres)
+        $totalCounts = ActivityLog::selectRaw('action, count(*) as total')
+            ->groupBy('action')
+            ->pluck('total', 'action')
+            ->toArray();
 
         $actions = [
             ['id' => '',        'name' => 'Toutes les actions'],
@@ -75,7 +61,7 @@ class Index extends Component
             ->prepend(['id' => '', 'name' => 'Tous les utilisateurs'])
             ->toArray();
 
-        return view('livewire.activity-logs.index', compact('logs', 'actions', 'users'))
-            ->layout('layouts.app', ['title' => 'Journaux d\'activité']);
+        return view('livewire.activity-logs.index', compact('logs', 'actions', 'users', 'totalCounts'))
+            ->layout('layouts.app', ['title' => "Journaux d'activité"]);
     }
 }

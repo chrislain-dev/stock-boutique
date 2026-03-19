@@ -9,6 +9,9 @@ enum ProductLocation: string
     case CLIENT      = 'client';
     case RESELLER    = 'reseller';
     case REPAIR_SHOP = 'repair_shop';
+    case REPRISE     = 'reprise';
+    case SUPPLIER_RETURN = 'supplier_return';
+
 
     public function label(): string
     {
@@ -18,6 +21,8 @@ enum ProductLocation: string
             self::CLIENT      => 'Chez le client',
             self::RESELLER    => 'Chez le revendeur',
             self::REPAIR_SHOP => 'En réparation',
+            self::REPRISE     => 'Reprises / Troc',
+            self::SUPPLIER_RETURN => 'À renvoyer fournisseur',
         };
     }
 }

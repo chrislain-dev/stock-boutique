@@ -60,6 +60,16 @@ class Product extends Model
                 throw new \Exception('Les prix doivent être positifs.');
             }
 
+            // Les produits en reprise / troc ont des prix de revente à définir
+            // lors du reconditionnement — on saute la vérification de cohérence.
+            $location = $product->location instanceof ProductLocation
+                ? $product->location
+                : ProductLocation::tryFrom($product->location);
+
+            if ($location === ProductLocation::REPRISE) {
+                return;
+            }
+
             if ($product->client_price < $product->purchase_price) {
                 throw new \Exception('Le prix client doit être >= au prix d\'achat.');
             }
@@ -70,7 +80,6 @@ class Product extends Model
             $originalState = $product->getOriginal('state');
             $newState = $product->state;
 
-            // getOriginal() peut retourner soit une string soit un Enum (selon le contexte)
             if ($originalState instanceof ProductState) {
                 $originalStateEnum = $originalState;
             } else {
@@ -159,8 +168,6 @@ class Product extends Model
     }
 
     // ─── Méthodes métier ──────────────────────────────────────
-
-    // Transition d'état sécurisée
     public function transitionTo(ProductState $newState): void
     {
         if (!$this->state->canTransitionTo($newState)) {
