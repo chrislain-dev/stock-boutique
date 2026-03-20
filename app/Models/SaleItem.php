@@ -23,10 +23,10 @@ class SaleItem extends Model
 
     protected $casts = [
         'quantity'                 => 'integer',
-        'unit_price'               => 'decimal:2',
-        'purchase_price_snapshot'  => 'decimal:2',
-        'discount'                 => 'decimal:2',
-        'line_total'               => 'decimal:2',
+        'unit_price'               => 'integer',
+        'purchase_price_snapshot'  => 'integer',
+        'discount'                 => 'integer',
+        'line_total'               => 'integer',
     ];
 
     // ─── Boot ──────────────────────────────────────────────────
@@ -65,7 +65,7 @@ class SaleItem extends Model
     }
 
     // ─── Accesseurs ───────────────────────────────────────────
-    public function getProfitAttribute(): float
+    public function getProfitAttribute(): int
     {
         return $this->line_total - ($this->purchase_price_snapshot * $this->quantity);
     }

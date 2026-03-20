@@ -40,7 +40,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales', \App\Livewire\Sales\Index::class)->name('sales.index');
     Route::get('/sales/create', \App\Livewire\Sales\Create::class)->name('sales.create');
     Route::get('/sales/{sale}', \App\Livewire\Sales\Show::class)->name('sales.show');
-    // Route::get('/sales/{sale}/receipt', \App\Livewire\Sales\Receipt::class)->name('sales.receipt');
     Route::get('/resellers', \App\Livewire\Resellers\Index::class)->name('resellers.index');
 
     Route::get('/sales/{sale}/receipt', function (\App\Models\Sale $sale) {
@@ -81,5 +80,5 @@ Route::middleware('auth')->group(function () {
 Route::get('/', function () {
     return Auth::check()
         ? redirect()->route('dashboard')
-        : redirect()->route('login');
+        : view('welcome');
 });

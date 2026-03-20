@@ -28,6 +28,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Ramener les states inconnus de l'ancienne contrainte vers 'returned'
+        DB::table('products')
+            ->whereIn('state', ['returned_to_supplier', 'trade_in', 'lost'])
+            ->update(['state' => 'returned']);
+
         DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_valid_state');
 
         DB::statement("

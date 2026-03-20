@@ -295,10 +295,9 @@
         <a href="{{ route('dashboard') }}" class="nav-brand">
             @php $logo = \App\Models\Setting::get('boutique.logo'); @endphp
             @if($logo)
-                <div class="nav-brand-logo">
-                    <img src="{{ \Illuminate\Support\Facades\Storage::url($logo) }}" alt="Logo"
-                         style="width:100%;height:100%;object-fit:contain;padding:4px;"/>
-                </div>
+                <img src="{{ \Illuminate\Support\Facades\Storage::url($logo) }}"
+                    alt="Logo"
+                    style="height:36px;width:auto;object-fit:contain;display:block;"/>
             @else
                 <div class="nav-brand-logo">
                     <span style="color:#fff;font-size:12px;font-weight:700;">

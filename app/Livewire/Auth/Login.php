@@ -44,7 +44,7 @@ class Login extends Component
             model: Auth::user(),
         );
 
-        $this->redirect(route('dashboard'), navigate: true);
+        $this->redirect(route('dashboard'));
     }
 
     public function render()

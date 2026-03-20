@@ -47,7 +47,16 @@ class Edit extends Component
             'purchase_date'  => 'required|date',
             'supplier_id'    => 'required|exists:suppliers,id',
             'payment_status' => 'required|in:paid,partial,unpaid',
-            'paid_amount'    => 'required|numeric|min:0',
+            'paid_amount'    => [
+                'required',
+                'numeric',
+                'min:0',
+                function ($attribute, $value, $fail) {
+                    if ($value > $this->purchase->total_amount) {
+                        $fail("Le montant payé ne peut pas dépasser le montant total.");
+                    }
+                },
+            ],
             'status'         => 'required|in:received,pending,cancelled',
         ]);
 

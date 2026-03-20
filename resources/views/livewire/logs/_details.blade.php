@@ -70,7 +70,7 @@
         if (is_null($value))                              return '—';
         if (is_bool($value))                              return $value ? 'Oui' : 'Non';
         if (in_array($key, $amountFields) && is_numeric($value))
-            return number_format((float) $value, 0, ',', ' ') . ' F';
+            return number_format((int) $value, 0, ',', ' ') . ' F';
         if (in_array($key, $dateFields) && $value)
             return \Carbon\Carbon::parse($value)->format('d/m/Y H:i');
         if (isset($statusLabels[$value]))                 return $statusLabels[$value];

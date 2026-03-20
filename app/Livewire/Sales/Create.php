@@ -20,10 +20,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Mary\Traits\Toast;
+use Livewire\WithPagination;
 
 class Create extends Component
 {
-    use Toast;
+    use Toast, WithPagination;
 
     public int $step = 1;
 
@@ -106,23 +107,23 @@ class Create extends Component
     }
 
     // ─── Totaux ───────────────────────────────────────────────
-    public function getGrossTotal(): float
+    public function getGrossTotal(): int
     {
         return collect($this->items)->sum('line_total');
     }
 
-    public function getTradeInValue(): float
+    public function getTradeInValue(): int
     {
-        return $this->is_trade_in ? max(0, (float) $this->trade_in_value) : 0;
+        return $this->is_trade_in ? max(0, (int) $this->trade_in_value) : 0;
     }
 
-    public function getNetTotal(): float
+    public function getNetTotal(): int
     {
         return max(0, $this->getGrossTotal() - $this->getTradeInValue());
     }
 
     // Alias pour la vue
-    public function getTotal(): float
+    public function getTotal(): int
     {
         return $this->getNetTotal();
     }
@@ -162,6 +163,8 @@ class Create extends Component
 
         if ($product) $this->addProductToCart($product);
         $this->search_product_id = null;
+
+        $this->resetPage();
     }
 
     private function addProductToCart(Product $product): void
@@ -175,8 +178,8 @@ class Create extends Component
 
         $isReseller = $this->customer_type === 'reseller';
         $unitPrice  = $isReseller
-            ? (float) $product->reseller_price
-            : (float) $product->client_price;
+            ? (int) $product->reseller_price
+            : (int) $product->client_price;
 
         $this->items[] = [
             'product_id'              => $product->id,
@@ -184,7 +187,7 @@ class Create extends Component
             'name'                    => $product->productModel->display_label,
             'identifier'              => $product->imei ?? $product->serial_number ?? '—',
             'unit_price'              => $unitPrice,
-            'purchase_price_snapshot' => (float) $product->purchase_price,
+            'purchase_price_snapshot' => (int) $product->purchase_price,
             'discount'                => 0,
             'quantity'                => 1,
             'line_total'              => $unitPrice,
@@ -197,7 +200,7 @@ class Create extends Component
     public function updateItemPrice(int $index, string $field, string $value): void
     {
         if (!isset($this->items[$index])) return;
-        $this->items[$index][$field] = (float) $value;
+        $this->items[$index][$field] = (int) $value;
         $this->recalcLine($index);
     }
 
@@ -262,7 +265,7 @@ class Create extends Component
         $grossTotal = $this->getGrossTotal();
         $tradeIn    = $this->getTradeInValue();
         $netTotal   = $this->getNetTotal();
-        $cashPaid   = min((float) $this->paid_amount, $netTotal);
+        $cashPaid   = min((int) $this->paid_amount, $netTotal);
 
         $data = [
             'client_name'         => $this->customer_name,
@@ -369,7 +372,7 @@ class Create extends Component
                         'state'          => ProductState::AVAILABLE->value,
                         'location'       => ProductLocation::REPRISE->value,
                         'condition'      => ProductCondition::USED->value,
-                        'purchase_price' => (float) $this->trade_in_value,
+                        'purchase_price' => (int) $this->trade_in_value,
                         'notes'          => $this->buildTradeInNotes(),
                         'updated_by'     => Auth::id(),
                     ]);
@@ -382,9 +385,9 @@ class Create extends Component
                         'state'            => ProductState::AVAILABLE->value,
                         'location'         => ProductLocation::REPRISE->value,
                         'condition'        => ProductCondition::USED->value,
-                        'purchase_price'   => (float) $this->trade_in_value,
-                        'client_price'     => (float) $this->trade_in_value,
-                        'reseller_price'   => (float) $this->trade_in_value,
+                        'purchase_price'   => (int) $this->trade_in_value,
+                        'client_price'     => (int) $this->trade_in_value,
+                        'reseller_price'   => (int) $this->trade_in_value,
                         'purchase_date'    => now()->toDateString(),
                         'notes'            => $this->buildTradeInNotes(),
                         'created_by'       => Auth::id(),
@@ -427,7 +430,7 @@ class Create extends Component
         return empty($parts) ? null : implode(' — ', $parts);
     }
 
-    private function computePaymentStatus(float $netTotal, float $cashPaid): string
+    private function computePaymentStatus(int $netTotal, int $cashPaid): string
     {
         if ($netTotal <= 0)         return 'paid';
         if ($cashPaid >= $netTotal) return 'paid';

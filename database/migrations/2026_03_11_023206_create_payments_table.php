@@ -15,7 +15,7 @@ return new class extends Migration
                 ->constrained()->cascadeOnDelete();
 
             // ─── Montant ──────────────────────────────────────────
-            $table->decimal('amount', 10, 2)
+            $table->unsignedBigInteger('amount')
                 ->comment('Montant de ce paiement');
 
             // ─── Mode de paiement ─────────────────────────────────

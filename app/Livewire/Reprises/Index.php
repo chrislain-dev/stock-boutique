@@ -73,8 +73,8 @@ class Index extends Component
                 'location'       => ProductLocation::STORE->value,
                 'state'          => ProductState::AVAILABLE->value,
                 'condition'      => $this->store_condition,
-                'client_price'   => (float) $this->store_client_price,
-                'reseller_price' => (float) $this->store_reseller_price,
+                'client_price'   => (int) $this->store_client_price,
+                'reseller_price' => (int) $this->store_reseller_price,
                 'notes'          => $this->store_notes ?: null,
                 'updated_by'     => Auth::id(),
             ]);

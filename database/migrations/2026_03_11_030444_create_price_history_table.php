@@ -20,19 +20,19 @@ return new class extends Migration
                 ->constrained()->cascadeOnDelete();
 
             // ─── Anciens prix ─────────────────────────────────────
-            $table->decimal('old_purchase_price', 10, 2)->nullable()
+            $table->unsignedBigInteger('old_purchase_price')->nullable()
                 ->comment('Ancien prix d\'achat');
-            $table->decimal('old_client_price', 10, 2)->nullable()
+            $table->unsignedBigInteger('old_client_price')->nullable()
                 ->comment('Ancien prix de vente client');
-            $table->decimal('old_reseller_price', 10, 2)->nullable()
+            $table->unsignedBigInteger('old_reseller_price')->nullable()
                 ->comment('Ancien prix de vente revendeur');
 
             // ─── Nouveaux prix ────────────────────────────────────
-            $table->decimal('new_purchase_price', 10, 2)->nullable()
+            $table->unsignedBigInteger('new_purchase_price')->nullable()
                 ->comment('Nouveau prix d\'achat');
-            $table->decimal('new_client_price', 10, 2)->nullable()
+            $table->unsignedBigInteger('new_client_price')->nullable()
                 ->comment('Nouveau prix de vente client');
-            $table->decimal('new_reseller_price', 10, 2)->nullable()
+            $table->unsignedBigInteger('new_reseller_price')->nullable()
                 ->comment('Nouveau prix de vente revendeur');
 
             // ─── Raison du changement ─────────────────────────────

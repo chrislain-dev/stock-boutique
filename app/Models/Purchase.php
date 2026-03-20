@@ -30,8 +30,8 @@ class Purchase extends Model
     ];
 
     protected $casts = [
-        'total_amount'   => 'decimal:2',
-        'paid_amount'    => 'decimal:2',
+        'total_amount'   => 'integer',
+        'paid_amount'    => 'integer',
         'payment_status' => PaymentStatus::class,
         'payment_method' => PaymentMethod::class,
         'purchase_date'  => 'date',
@@ -95,7 +95,7 @@ class Purchase extends Model
     }
 
     // ─── Accesseurs ───────────────────────────────────────────
-    public function getRemainingAmountAttribute(): float
+    public function getRemainingAmountAttribute(): int
     {
         return $this->total_amount - $this->paid_amount;
     }

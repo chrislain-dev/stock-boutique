@@ -52,7 +52,6 @@
         .line-item   { animation: lineIn .25s cubic-bezier(.22,1,.36,1) both; }
         .check-pop   { animation: checkPop .3s cubic-bezier(.34,1.56,.64,1) both; }
 
-        /* Champs en erreur */
         .field-error input,
         .field-error select,
         .field-error textarea {
@@ -66,28 +65,23 @@
             box-shadow: 0 0 0 3px rgba(239,68,68,.08) !important;
         }
 
-        /* Champs OK */
         .field-ok input,
         .field-ok select,
         .field-ok textarea {
             border-color: #bbf7d0 !important;
         }
 
-        /* Focus général */
         input:focus, select:focus, textarea:focus {
             box-shadow: 0 0 0 3px rgba(24,24,27,.07);
         }
 
         button:active:not(:disabled) { transform: scale(0.97); }
 
-        /* Connecteur stepper animé */
         .step-line { transition: background-color .4s ease; }
 
-        /* Card hover */
         .form-card { transition: box-shadow .2s ease; }
         .form-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.05); }
 
-        /* Ligne bon de commande hover */
         .bc-line { transition: background-color .12s ease, box-shadow .12s ease; }
         .bc-line:hover { background-color: #fafafa; box-shadow: inset 3px 0 0 0 #d1d5db; }
     </style>
@@ -111,37 +105,26 @@
         @foreach([1 => 'Informations', 2 => 'Produits', 3 => 'Récapitulatif'] as $num => $label)
         <div class="flex items-center {{ !$loop->last ? 'flex-1' : '' }}">
             <div class="flex items-center gap-2.5">
-
-                {{-- Cercle --}}
                 <div class="relative w-8 h-8 shrink-0">
                     @if($step > $num)
-                    {{-- Complété --}}
                     <div class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center check-pop">
                         <x-heroicon-o-check class="w-3.5 h-3.5 text-white"/>
                     </div>
                     @elseif($step === $num)
-                    {{-- Actif --}}
-                    <div class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center ring-4 ring-gray-900/10
-                                transition-all duration-300">
+                    <div class="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center ring-4 ring-gray-900/10 transition-all duration-300">
                         <span class="text-xs font-bold text-white">{{ $num }}</span>
                     </div>
                     @else
-                    {{-- Futur --}}
-                    <div class="w-8 h-8 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center
-                                transition-all duration-300">
+                    <div class="w-8 h-8 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center transition-all duration-300">
                         <span class="text-xs font-medium text-gray-400">{{ $num }}</span>
                     </div>
                     @endif
                 </div>
-
-                {{-- Label --}}
                 <span class="text-sm font-medium transition-colors duration-200
                     {{ $step === $num ? 'text-gray-900' : ($step > $num ? 'text-gray-500' : 'text-gray-300') }}">
                     {{ $label }}
                 </span>
             </div>
-
-            {{-- Connecteur --}}
             @if(!$loop->last)
             <div class="flex-1 h-px mx-4 step-line {{ $step > $num ? 'bg-gray-900' : 'bg-gray-200' }}"></div>
             @endif
@@ -183,8 +166,7 @@
                         </div>
                         @error('supplier_id')
                         <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                            {{ $message }}
+                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                         </p>
                         @enderror
                     </div>
@@ -202,8 +184,7 @@
                         </div>
                         @error('purchase_date')
                         <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                            {{ $message }}
+                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                         </p>
                         @enderror
                     </div>
@@ -225,13 +206,11 @@
                         </div>
                         @error('payment_status')
                         <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                            {{ $message }}
+                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                         </p>
                         @enderror
                     </div>
 
-                    {{-- Champs conditionnels paiement --}}
                     @if($payment_status !== 'unpaid')
 
                     {{-- Mode de paiement --}}
@@ -258,14 +237,11 @@
                             <input wire:model="paid_amount" type="number"
                                    class="w-full h-9 pl-9 pr-14 text-sm border border-gray-200 rounded-xl outline-none bg-white
                                           hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
-                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 select-none">
-                                {{ config('boutique.devise_symbole') }}
-                            </span>
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 select-none">{{ config('boutique.devise_symbole') }}</span>
                         </div>
                         @error('paid_amount')
                         <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                            {{ $message }}
+                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                         </p>
                         @enderror
                     </div>
@@ -275,15 +251,13 @@
                         <label class="block text-xs font-medium text-gray-600 mb-1.5">Référence transaction</label>
                         <div class="relative">
                             <x-heroicon-o-hashtag class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"/>
-                            <input wire:model="transaction_reference"
-                                   placeholder="Ex: TXN-123456"
+                            <input wire:model="transaction_reference" placeholder="Ex: TXN-123456"
                                    class="w-full h-9 pl-9 pr-3 text-sm border border-gray-200 rounded-xl outline-none bg-white
                                           hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
                         </div>
                     </div>
                     @endif
 
-                    {{-- Date limite si partiel / impayé --}}
                     @if($payment_status === 'partial' || $payment_status === 'unpaid')
                     <div class="{{ $errors->has('due_date') ? 'field-error' : '' }}"
                          x-data x-init="$el.style.animation='slideUp .25s ease both'; $el.style.opacity=0">
@@ -297,8 +271,7 @@
                         <p class="text-[11px] text-gray-400 mt-1">Date à laquelle le solde doit être réglé</p>
                         @error('due_date')
                         <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                            {{ $message }}
+                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                         </p>
                         @enderror
                     </div>
@@ -307,9 +280,7 @@
                     {{-- Notes --}}
                     <div class="md:col-span-2">
                         <label class="block text-xs font-medium text-gray-600 mb-1.5">Notes</label>
-                        <textarea wire:model="notes"
-                                  rows="2"
-                                  placeholder="Remarques sur cet achat..."
+                        <textarea wire:model="notes" rows="2" placeholder="Remarques sur cet achat..."
                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none
                                          hover:border-gray-300 focus:border-gray-400
                                          resize-none transition-all duration-150 leading-relaxed"></textarea>
@@ -320,10 +291,8 @@
             <div class="flex justify-end px-6 py-4 border-t border-gray-100 bg-gray-50/60">
                 <button wire:click="nextStep"
                         class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-gray-900 text-white text-sm
-                               hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md
-                               transition-all duration-150">
-                    Suivant
-                    <x-heroicon-o-arrow-right class="w-4 h-4"/>
+                               hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150">
+                    Suivant <x-heroicon-o-arrow-right class="w-4 h-4"/>
                 </button>
             </div>
         </div>
@@ -365,8 +334,7 @@
                     </div>
                     @error('line_product_model_id')
                     <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                        <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                        {{ $message }}
+                        <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                     </p>
                     @enderror
                 </div>
@@ -379,33 +347,67 @@
                         $el.style.opacity = 1; $el.style.transform = 'translateY(0)';
                     })">
 
-                    {{-- Prix --}}
-                    <div class="grid grid-cols-3 gap-3 mb-4">
-                        @foreach([
-                            ['field' => 'line_unit_purchase_price', 'label' => 'Prix achat'],
-                            ['field' => 'line_unit_client_price',   'label' => 'Prix client'],
-                            ['field' => 'line_unit_reseller_price', 'label' => 'Prix revendeur'],
-                        ] as $price)
-                        <div class="{{ $errors->has($price['field']) ? 'field-error' : '' }}">
+                    {{-- ─── Prix — admin voit les 3, vendeur voit seulement client + revendeur ─── --}}
+                    @php $canSeePurchasePrice = auth()->user()->hasPermission('see_purchase_price'); @endphp
+
+                    <div class="grid grid-cols-{{ $canSeePurchasePrice ? '3' : '2' }} gap-3 mb-4">
+
+                        {{-- Prix achat — admin uniquement --}}
+                        @if($canSeePurchasePrice)
+                        <div class="{{ $errors->has('line_unit_purchase_price') ? 'field-error' : '' }}">
                             <label class="block text-xs font-medium text-gray-600 mb-1.5">
-                                {{ $price['label'] }} <span class="text-red-400">*</span>
+                                Prix achat <span class="text-red-400">*</span>
                             </label>
                             <div class="relative">
-                                <input wire:model="{{ $price['field'] }}" type="number"
+                                <input wire:model="line_unit_purchase_price" type="number"
                                        class="w-full h-9 pl-3 pr-8 text-sm border border-gray-200 rounded-xl outline-none bg-white
                                               hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
-                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 select-none">
-                                    {{ config('boutique.devise_symbole') }}
-                                </span>
+                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 select-none">{{ config('boutique.devise_symbole') }}</span>
                             </div>
-                            @error($price['field'])
+                            @error('line_unit_purchase_price')
                             <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                                <x-heroicon-o-exclamation-circle class="w-3 h-3 shrink-0"/>
-                                {{ $message }}
+                                <x-heroicon-o-exclamation-circle class="w-3 h-3 shrink-0"/>{{ $message }}
                             </p>
                             @enderror
                         </div>
-                        @endforeach
+                        @endif
+
+                        {{-- Prix client --}}
+                        <div class="{{ $errors->has('line_unit_client_price') ? 'field-error' : '' }}">
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">
+                                Prix client <span class="text-red-400">*</span>
+                            </label>
+                            <div class="relative">
+                                <input wire:model="line_unit_client_price" type="number"
+                                       class="w-full h-9 pl-3 pr-8 text-sm border border-gray-200 rounded-xl outline-none bg-white
+                                              hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
+                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 select-none">{{ config('boutique.devise_symbole') }}</span>
+                            </div>
+                            @error('line_unit_client_price')
+                            <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
+                                <x-heroicon-o-exclamation-circle class="w-3 h-3 shrink-0"/>{{ $message }}
+                            </p>
+                            @enderror
+                        </div>
+
+                        {{-- Prix revendeur --}}
+                        <div class="{{ $errors->has('line_unit_reseller_price') ? 'field-error' : '' }}">
+                            <label class="block text-xs font-medium text-gray-600 mb-1.5">
+                                Prix revendeur <span class="text-red-400">*</span>
+                            </label>
+                            <div class="relative">
+                                <input wire:model="line_unit_reseller_price" type="number"
+                                       class="w-full h-9 pl-3 pr-8 text-sm border border-gray-200 rounded-xl outline-none bg-white
+                                              hover:border-gray-300 focus:border-gray-400 transition-all duration-150"/>
+                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 select-none">{{ config('boutique.devise_symbole') }}</span>
+                            </div>
+                            @error('line_unit_reseller_price')
+                            <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
+                                <x-heroicon-o-exclamation-circle class="w-3 h-3 shrink-0"/>{{ $message }}
+                            </p>
+                            @enderror
+                        </div>
+
                     </div>
 
                     {{-- Condition --}}
@@ -428,8 +430,7 @@
                             @foreach(['manual' => 'Manuel', 'bulk' => 'Copier-coller'] as $val => $lbl)
                             <label class="flex items-center gap-2 cursor-pointer group">
                                 <div class="relative w-4 h-4 shrink-0">
-                                    <input type="radio" wire:model.live="line_imei_mode" value="{{ $val }}"
-                                           class="sr-only peer"/>
+                                    <input type="radio" wire:model.live="line_imei_mode" value="{{ $val }}" class="sr-only peer"/>
                                     <div class="w-4 h-4 rounded-full border-2 border-gray-300 peer-checked:border-gray-900 peer-checked:bg-gray-900
                                                 transition-all duration-150 flex items-center justify-center">
                                         <div class="w-1.5 h-1.5 rounded-full bg-white opacity-0 peer-checked:opacity-100 transition-opacity"></div>
@@ -464,8 +465,7 @@
                             </button>
                         </div>
                         @else
-                        <textarea wire:model="line_imei_bulk"
-                                  rows="5"
+                        <textarea wire:model="line_imei_bulk" rows="5"
                                   placeholder="Coller les IMEI / numéros de série (un par ligne)"
                                   class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none bg-white
                                          hover:border-gray-300 focus:border-gray-400 font-mono
@@ -487,8 +487,7 @@
                         </div>
                         @error('line_quantity')
                         <p class="error-msg flex items-center gap-1 text-[11px] text-red-500 mt-1">
-                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>
-                            {{ $message }}
+                            <x-heroicon-o-exclamation-circle class="w-3.5 h-3.5 shrink-0"/>{{ $message }}
                         </p>
                         @enderror
                     </div>
@@ -511,8 +510,7 @@
             <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/60">
                 <button wire:click="addLine"
                         class="inline-flex items-center justify-center gap-2 w-full h-9 rounded-xl bg-gray-900 text-white text-sm
-                               hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md
-                               transition-all duration-150">
+                               hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md transition-all duration-150">
                     <x-heroicon-o-plus class="w-4 h-4"/>
                     Ajouter au bon de commande
                 </button>
@@ -527,7 +525,8 @@
                     <p class="text-sm font-medium text-gray-800">Bon de commande</p>
                     <p class="text-xs text-gray-400 mt-0.5">{{ count($items) }} ligne(s) ajoutée(s)</p>
                 </div>
-                @if(count($items) > 0)
+                {{-- Total visible uniquement pour l'admin --}}
+                @if(count($items) > 0 && auth()->user()->hasPermission('see_purchase_price'))
                 <span class="text-sm font-semibold text-gray-900">
                     {{ number_format(collect($items)->sum('line_total'), 0, ',', ' ') }}
                     <span class="text-xs font-normal text-gray-400">{{ config('boutique.devise_symbole') }}</span>
@@ -542,24 +541,28 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-gray-800 truncate">{{ $item['model_name'] }}</p>
                             <p class="text-[11px] text-gray-400 mt-0.5">
-                                {{ $item['quantity'] }} unité(s) ×
-                                <span class="font-medium">{{ number_format($item['unit_purchase_price'], 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}</span>
+                                {{ $item['quantity'] }} unité(s)
+                                {{-- Prix achat dans la ligne — admin uniquement --}}
+                                @if(auth()->user()->hasPermission('see_purchase_price'))
+                                × <span class="font-medium">{{ number_format($item['unit_purchase_price'], 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}</span>
+                                @endif
                             </p>
                             @if($item['is_serialized'] && !empty($item['identifiers']))
                             <div class="mt-1.5 flex flex-wrap gap-1">
                                 @foreach($item['identifiers'] as $id)
-                                <span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] font-mono border border-gray-200">
-                                    {{ $id }}
-                                </span>
+                                <span class="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] font-mono border border-gray-200">{{ $id }}</span>
                                 @endforeach
                             </div>
                             @endif
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
+                            {{-- Montant ligne — admin uniquement --}}
+                            @if(auth()->user()->hasPermission('see_purchase_price'))
                             <span class="text-sm font-semibold text-gray-900">
                                 {{ number_format($item['line_total'], 0, ',', ' ') }}
                                 <span class="text-[11px] font-normal text-gray-400">{{ config('boutique.devise_symbole') }}</span>
                             </span>
+                            @endif
                             <button wire:click="removeLine({{ $index }})"
                                     class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-300
                                            hover:bg-red-50 hover:text-red-500 transition-all duration-150">
@@ -579,7 +582,7 @@
                 @endforelse
             </div>
 
-            @if(count($items) > 0)
+            @if(count($items) > 0 && auth()->user()->hasPermission('see_purchase_price'))
             <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/60">
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-gray-500">Total commande</span>
@@ -598,17 +601,14 @@
         <button wire:click="prevStep"
                 class="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-600
                        hover:bg-gray-50 hover:border-gray-300 transition-all duration-150">
-            <x-heroicon-o-arrow-left class="w-4 h-4"/>
-            Retour
+            <x-heroicon-o-arrow-left class="w-4 h-4"/>Retour
         </button>
-        <button wire:click="nextStep"
-                @if(empty($items)) disabled @endif
+        <button wire:click="nextStep" @if(empty($items)) disabled @endif
                 class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-gray-900 text-white text-sm
                        hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-md
                        disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none
                        transition-all duration-150">
-            Récapitulatif
-            <x-heroicon-o-arrow-right class="w-4 h-4"/>
+            Récapitulatif <x-heroicon-o-arrow-right class="w-4 h-4"/>
         </button>
     </div>
     @endif
@@ -622,20 +622,25 @@
 
         {{-- Infos générales --}}
         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden form-card">
-
             <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
                 <p class="text-sm font-medium text-gray-800">Récapitulatif de l'achat</p>
                 <p class="text-xs text-gray-400 mt-0.5">Vérifiez les informations avant de valider</p>
             </div>
-
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-gray-100">
+            <div class="grid grid-cols-2 {{ auth()->user()->hasPermission('see_purchase_price') ? 'md:grid-cols-4' : 'md:grid-cols-3' }} gap-0 divide-x divide-gray-100">
                 @php
                     $recap = [
-                        ['label' => 'Fournisseur',       'value' => \App\Models\Supplier::find($supplier_id)?->name ?? '—'],
-                        ['label' => 'Date',              'value' => \Carbon\Carbon::parse($purchase_date)->format('d/m/Y')],
-                        ['label' => 'Statut paiement',   'value' => \App\Enums\PaymentStatus::from($payment_status)->label()],
-                        ['label' => 'Total',             'value' => number_format(collect($items)->sum('line_total'), 0, ',', ' ') . ' ' . config('boutique.devise_symbole'), 'bold' => true],
+                        ['label' => 'Fournisseur',     'value' => \App\Models\Supplier::find($supplier_id)?->name ?? '—'],
+                        ['label' => 'Date',            'value' => \Carbon\Carbon::parse($purchase_date)->format('d/m/Y')],
+                        ['label' => 'Statut paiement', 'value' => \App\Enums\PaymentStatus::from($payment_status)->label()],
                     ];
+                    // Total visible uniquement pour l'admin
+                    if (auth()->user()->hasPermission('see_purchase_price')) {
+                        $recap[] = [
+                            'label' => 'Total',
+                            'value' => number_format(collect($items)->sum('line_total'), 0, ',', ' ') . ' ' . config('boutique.devise_symbole'),
+                            'bold'  => true,
+                        ];
+                    }
                 @endphp
                 @foreach($recap as $i => $r)
                 <div class="px-6 py-5" style="animation: slideUp .25s ease {{ $i * 50 }}ms both">
@@ -650,12 +655,10 @@
 
         {{-- Lignes produits --}}
         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden form-card">
-
             <div class="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
                 <p class="text-sm font-medium text-gray-800">Lignes produits</p>
                 <span class="text-[11px] text-gray-400">{{ count($items) }} ligne(s)</span>
             </div>
-
             <div class="divide-y divide-gray-100">
                 @foreach($items as $i => $item)
                 <div class="flex items-start justify-between gap-4 px-6 py-4 bc-line"
@@ -663,9 +666,11 @@
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-800">{{ $item['model_name'] }}</p>
                         <p class="text-[11px] text-gray-400 mt-0.5">
-                            {{ $item['quantity'] }} unité(s) ·
-                            Achat <span class="font-medium">{{ number_format($item['unit_purchase_price'], 0, ',', ' ') }}</span> ·
-                            Client <span class="font-medium">{{ number_format($item['unit_client_price'], 0, ',', ' ') }}</span>
+                            {{ $item['quantity'] }} unité(s)
+                            @if(auth()->user()->hasPermission('see_purchase_price'))
+                            · Achat <span class="font-medium">{{ number_format($item['unit_purchase_price'], 0, ',', ' ') }}</span>
+                            @endif
+                            · Client <span class="font-medium">{{ number_format($item['unit_client_price'], 0, ',', ' ') }}</span>
                             {{ config('boutique.devise_symbole') }}
                         </p>
                         @if(!empty($item['identifiers']))
@@ -674,14 +679,18 @@
                         </p>
                         @endif
                     </div>
+                    {{-- Montant ligne — admin uniquement --}}
+                    @if(auth()->user()->hasPermission('see_purchase_price'))
                     <p class="text-sm font-semibold text-gray-900 shrink-0">
                         {{ number_format($item['line_total'], 0, ',', ' ') }}
                         <span class="text-[11px] font-normal text-gray-400">{{ config('boutique.devise_symbole') }}</span>
                     </p>
+                    @endif
                 </div>
                 @endforeach
             </div>
 
+            @if(auth()->user()->hasPermission('see_purchase_price'))
             <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/60">
                 <div class="flex items-center justify-between">
                     <span class="text-sm text-gray-500">Total général</span>
@@ -691,6 +700,7 @@
                     </span>
                 </div>
             </div>
+            @endif
         </div>
 
         {{-- Navigation --}}
@@ -698,19 +708,13 @@
             <button wire:click="prevStep"
                     class="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-gray-200 bg-white text-sm text-gray-600
                            hover:bg-gray-50 hover:border-gray-300 transition-all duration-150">
-                <x-heroicon-o-arrow-left class="w-4 h-4"/>
-                Modifier
+                <x-heroicon-o-arrow-left class="w-4 h-4"/>Modifier
             </button>
-
-            <button wire:click="save"
-                    wire:loading.attr="disabled"
-                    wire:loading.class="opacity-75 cursor-wait"
+            <button wire:click="save" wire:loading.attr="disabled" wire:loading.class="opacity-75 cursor-wait"
                     class="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-green-600 text-white text-sm
                            hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-md hover:shadow-green-200/70
-                           disabled:opacity-75 disabled:cursor-wait disabled:translate-y-0
-                           transition-all duration-150">
-                <svg wire:loading wire:target="save"
-                     class="w-4 h-4" style="animation: spin .7s linear infinite"
+                           disabled:opacity-75 disabled:cursor-wait disabled:translate-y-0 transition-all duration-150">
+                <svg wire:loading wire:target="save" class="w-4 h-4" style="animation: spin .7s linear infinite"
                      fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>

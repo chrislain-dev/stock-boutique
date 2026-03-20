@@ -601,7 +601,7 @@
                 @endif
 
                 {{-- Reliquat --}}
-                @php $remaining = $this->getTotal() - (float)$paid_amount; @endphp
+                @php $remaining = $this->getTotal() - (int)$paid_amount; @endphp
                 @if($remaining > 0)
                 <div x-data x-init="
                     $el.style.opacity=0; $el.style.transform='translateY(4px)';
@@ -765,11 +765,11 @@
                             </div>
 
                             {{-- Résumé déduction --}}
-                            @if((float)$trade_in_value > 0)
+                            @if((int)$trade_in_value > 0)
                             <div class="flex items-center justify-between p-3 bg-amber-100/60 rounded-lg border border-amber-200">
                                 <span class="text-xs font-medium text-amber-700">Déduction sur la vente</span>
                                 <span class="text-sm font-bold text-amber-700">
-                                    −{{ number_format((float)$trade_in_value, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}
+                                    −{{ number_format((int)$trade_in_value, 0, ',', ' ') }} {{ config('boutique.devise_symbole') }}
                                 </span>
                             </div>
                             @endif
@@ -834,7 +834,7 @@
                             ? (\App\Models\Reseller::find($reseller_id)?->name ?? '—')
                             : ($customer_name ?: 'Anonyme')],
                         ['label' => 'Paiement',   'value' => \App\Enums\PaymentMethod::from($payment_method)->label()],
-                        ['label' => 'Montant payé','value' => number_format((float)$paid_amount, 0, ',', ' ') . ' ' . config('boutique.devise_symbole')],
+                        ['label' => 'Montant payé','value' => number_format((int)$paid_amount, 0, ',', ' ') . ' ' . config('boutique.devise_symbole')],
                         ['label' => 'Total net',   'value' => number_format($this->getTotal(), 0, ',', ' ') . ' ' . config('boutique.devise_symbole'), 'bold' => true],
                     ];
                 @endphp
@@ -872,11 +872,11 @@
                     </div>
                     @endforeach
 
-                    @if($is_trade_in && (float)$trade_in_value > 0)
+                    @if($is_trade_in && (int)$trade_in_value > 0)
                     <div class="rrow">
                         <span class="text-sm text-amber-600 font-medium">Troc déduit</span>
                         <span class="text-sm font-semibold text-amber-600">
-                            −{{ number_format((float)$trade_in_value, 0, ',', ' ') }}
+                            −{{ number_format((int)$trade_in_value, 0, ',', ' ') }}
                             <span class="text-[11px] font-normal text-amber-400">{{ config('boutique.devise_symbole') }}</span>
                         </span>
                     </div>

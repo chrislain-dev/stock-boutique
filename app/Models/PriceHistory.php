@@ -25,12 +25,12 @@ class PriceHistory extends Model
     ];
 
     protected $casts = [
-        'old_purchase_price'  => 'decimal:2',
-        'old_client_price'    => 'decimal:2',
-        'old_reseller_price'  => 'decimal:2',
-        'new_purchase_price'  => 'decimal:2',
-        'new_client_price'    => 'decimal:2',
-        'new_reseller_price'  => 'decimal:2',
+        'old_purchase_price'  => 'integer',
+        'old_client_price'    => 'integer',
+        'old_reseller_price'  => 'integer',
+        'new_purchase_price'  => 'integer',
+        'new_client_price'    => 'integer',
+        'new_reseller_price'  => 'integer',
         'created_at'          => 'datetime',
     ];
 

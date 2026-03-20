@@ -26,18 +26,18 @@ class Edit extends Component
     public string $state          = '';
     public string $location       = '';
     public string $defects        = '';
-    public float $purchase_price  = 0;
-    public float $client_price    = 0;
-    public float $reseller_price  = 0;
+    public int $purchase_price  = 0;
+    public int $client_price    = 0;
+    public int $reseller_price  = 0;
     public string $purchase_date  = '';
     public ?int $supplier_id      = null;
     public string $notes          = '';
     public string $price_change_reason = '';
 
     // ─── Détecter si les prix ont changé ──────────────────────
-    public float $original_purchase_price = 0;
-    public float $original_client_price   = 0;
-    public float $original_reseller_price = 0;
+    public int $original_purchase_price = 0;
+    public int $original_client_price   = 0;
+    public int $original_reseller_price = 0;
 
     public function mount(Product $product): void
     {

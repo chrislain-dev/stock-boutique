@@ -61,9 +61,9 @@ class ProductModel extends Model
         'quantity_stock'         => 'integer',
         'quantity_sold'          => 'integer',
         'stock_minimum'          => 'integer',
-        'default_purchase_price' => 'decimal:2',
-        'default_client_price'   => 'decimal:2',
-        'default_reseller_price' => 'decimal:2',
+        'default_purchase_price' => 'integer',
+        'default_client_price'   => 'integer',
+        'default_reseller_price' => 'integer',
     ];
 
     // ─── Relations ────────────────────────────────────────────

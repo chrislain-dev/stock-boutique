@@ -2,48 +2,40 @@
 
 namespace Tests;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
-    /**
-     * Setup methods run before each test.
-     */
-    protected function setUp(): void
+    protected function createAdmin(array $overrides = []): User
     {
-        parent::setUp();
-        // Disable query logging to speed up tests
-        \Illuminate\Database\Eloquent\Model::unguard();
+        return User::factory()->create(array_merge([
+            'role'      => UserRole::ADMIN,
+            'is_active' => true,
+        ], $overrides));
     }
 
-    /**
-     * Create and authenticate a user for testing.
-     */
-    protected function signInUser($user = null)
+    protected function createVendeur(array $overrides = []): User
     {
-        if (!$user) {
-            $user = \App\Models\User::factory()->create();
-        }
-
-        $this->actingAs($user);
-
-        return $user;
+        return User::factory()->create(array_merge([
+            'role'      => UserRole::VENDEUR,
+            'is_active' => true,
+        ], $overrides));
     }
 
-    /**
-     * Create and authenticate an admin user.
-     */
-    protected function signInAdmin($user = null)
+    protected function actingAsAdmin(): static
     {
-        if (!$user) {
-            $user = \App\Models\User::factory()->create([
-                'role' => \App\Enums\UserRole::ADMIN,
-            ]);
-        }
+        $this->actingAs($this->createAdmin());
+        return $this;
+    }
 
-        return $this->signInUser($user);
+    protected function actingAsVendeur(): static
+    {
+        $this->actingAs($this->createVendeur());
+        return $this;
     }
 }

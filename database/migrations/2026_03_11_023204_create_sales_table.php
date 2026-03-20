@@ -27,9 +27,9 @@ return new class extends Migration
             $table->string('customer_phone')->nullable();
 
             // ─── Montants ─────────────────────────────────────────
-            $table->decimal('total_amount', 10, 2)
+            $table->unsignedBigInteger('total_amount')->default(0)
                 ->comment('Montant total de la vente');
-            $table->decimal('paid_amount', 10, 2)->default(0)
+            $table->unsignedBigInteger('paid_amount')->default(0)
                 ->comment('Montant déjà payé');
 
             // ─── Statut paiement ──────────────────────────────────
@@ -53,7 +53,7 @@ return new class extends Migration
             $table->foreignId('trade_in_product_id')->nullable()
                 ->constrained('products')->nullOnDelete()
                 ->comment('Produit donné en échange par le client');
-            $table->decimal('trade_in_value', 10, 2)->nullable()
+            $table->unsignedBigInteger('trade_in_value')->nullable()
                 ->comment('Valeur estimée du produit échangé');
             $table->text('trade_in_notes')->nullable()
                 ->comment('État et notes sur le produit échangé');

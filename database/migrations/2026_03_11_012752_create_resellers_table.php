@@ -13,8 +13,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('phone')->unique();
             $table->string('phone_secondary')->nullable();
+            $table->string('email')->nullable();
             $table->text('address')->nullable();
-            $table->decimal('solde_du', 10, 2)->default(0)
+            $table->unsignedBigInteger('solde_du')->default(0)
                 ->comment('Montant total dû par ce revendeur');
             $table->text('notes')->nullable();
             $table->boolean('is_active')->default(true);

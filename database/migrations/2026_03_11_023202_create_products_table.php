@@ -43,11 +43,11 @@ return new class extends Migration
             $table->text('notes')->nullable();
 
             // ─── Prices (specific to this unit) ──────────────────
-            $table->decimal('purchase_price', 10, 2)
+            $table->unsignedBigInteger('purchase_price')
                 ->comment('Prix d\'achat réel de cette unité');
-            $table->decimal('client_price', 10, 2)
+            $table->unsignedBigInteger('client_price')
                 ->comment('Prix de vente pour les clients');
-            $table->decimal('reseller_price', 10, 2)
+            $table->unsignedBigInteger('reseller_price')
                 ->comment('Prix de vente pour les revendeurs');
 
             // ─── Purchase info ───────────────────────────────────

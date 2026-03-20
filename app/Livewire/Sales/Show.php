@@ -11,8 +11,10 @@ use App\Models\Product;
 use App\Models\ProductReturn;
 use App\Models\Sale;
 use App\Models\StockMovement;
+use App\Services\ActivityLogService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -22,7 +24,7 @@ class Show extends Component
 
     public Sale $sale;
 
-    // Modal ajout paiement
+    // ─── Modal paiement ───────────────────────────────────────
     public bool   $showPaymentModal = false;
     public string $pay_amount       = '';
     public string $pay_method       = 'cash';
@@ -30,16 +32,21 @@ class Show extends Component
     public string $pay_mobile       = '';
     public string $pay_bank         = '';
     public string $pay_notes        = '';
-    public string $replacement_id = '';
+    public string $replacement_id   = '';
 
-    // Liste des produits disponibles pour remplacement (même modèle)
     public array $availableReplacements = [];
 
-    // Modal retour défectueux
-    public bool   $showReturnModal  = false;
-    public ?int   $returnProductId  = null;
-    public string $return_reason    = '';
-    public string $return_notes     = '';
+    // ─── Modal retour défectueux ──────────────────────────────
+    public bool   $showReturnModal = false;
+    public ?int   $returnProductId = null;
+    public string $return_reason   = '';
+    public string $return_notes    = '';
+
+    // ─── Modal suppression ────────────────────────────────────
+    public bool   $showDeleteModal       = false;
+    public string $delete_password       = '';
+    public string $delete_reason         = '';
+    public bool   $delete_password_error = false;
 
     public function mount(Sale $sale): void
     {
@@ -54,14 +61,15 @@ class Show extends Component
     }
 
     // ─── Paiement ─────────────────────────────────────────────
+
     public function openPaymentModal(): void
     {
-        $this->pay_amount    = (string) $this->sale->remaining_amount;
-        $this->pay_method    = 'cash';
-        $this->pay_reference = '';
-        $this->pay_mobile    = '';
-        $this->pay_bank      = '';
-        $this->pay_notes     = '';
+        $this->pay_amount       = (string) $this->sale->remaining_amount;
+        $this->pay_method       = 'cash';
+        $this->pay_reference    = '';
+        $this->pay_mobile       = '';
+        $this->pay_bank         = '';
+        $this->pay_notes        = '';
         $this->showPaymentModal = true;
     }
 
@@ -84,26 +92,20 @@ class Show extends Component
             'created_by'            => Auth::id(),
         ]);
 
-        $this->sale->refresh()->load([
-            'items.productModel.brand',
-            'items.product',
-            'payments.createdBy',
-            'reseller',
-            'createdBy',
-            'tradeInProduct.productModel',
-        ]);
-
+        $this->reloadSale();
         $this->showPaymentModal = false;
         $this->success('Paiement enregistré.');
     }
 
     // ─── Reçu ─────────────────────────────────────────────────
+
     public function printReceipt(): void
     {
         $this->dispatch('open-receipt', url: route('sales.receipt', $this->sale->id));
     }
 
     // ─── Retour défectueux ────────────────────────────────────
+
     public function openDeclareReturn(int $productId): void
     {
         $this->returnProductId = $productId;
@@ -111,7 +113,6 @@ class Show extends Component
         $this->return_notes    = '';
         $this->replacement_id  = '';
 
-        // Charger les produits du même modèle disponibles en stock
         $product = Product::findOrFail($productId);
         $this->availableReplacements = Product::where('product_model_id', $product->product_model_id)
             ->where('state', ProductState::AVAILABLE->value)
@@ -130,8 +131,8 @@ class Show extends Component
     public function declareReturn(): void
     {
         $this->validate([
-            'return_reason'     => 'required|min:5',
-            'replacement_id'    => 'nullable|exists:products,id',
+            'return_reason'  => 'required|min:5',
+            'replacement_id' => 'nullable|exists:products,id',
         ], [
             'return_reason.required' => 'Décrivez la défaillance constatée.',
             'return_reason.min'      => 'La description doit faire au moins 5 caractères.',
@@ -141,25 +142,22 @@ class Show extends Component
 
         DB::transaction(function () use ($defectiveProduct) {
 
-            // ── 1. Marquer le produit défectueux ──────────────────
             $defectiveProduct->update([
                 'state'      => ProductState::DEFECTIVE->value,
                 'location'   => ProductLocation::SUPPLIER_RETURN->value,
                 'updated_by' => Auth::id(),
             ]);
 
-            // ── 2. Enregistrer le retour ──────────────────────────
             ProductReturn::create([
-                'product_id'            => $defectiveProduct->id,
+                'product_id'             => $defectiveProduct->id,
                 'replacement_product_id' => $this->replacement_id ?: null,
-                'sale_id'               => $this->sale->id,
-                'reason'                => $this->return_reason,
-                'notes'                 => $this->return_notes ?: null,
-                'status'                => 'pending',
-                'declared_by'           => Auth::id(),
+                'sale_id'                => $this->sale->id,
+                'reason'                 => $this->return_reason,
+                'notes'                  => $this->return_notes ?: null,
+                'status'                 => 'pending',
+                'declared_by'            => Auth::id(),
             ]);
 
-            // ── 3. Mouvement : retour client ──────────────────────
             StockMovement::create([
                 'product_model_id' => $defectiveProduct->product_model_id,
                 'product_id'       => $defectiveProduct->id,
@@ -173,7 +171,6 @@ class Show extends Component
                 'created_by'       => Auth::id(),
             ]);
 
-            // ── 4. Si remplacement choisi : sortie du stock ───────
             if ($this->replacement_id) {
                 $replacement = Product::findOrFail($this->replacement_id);
 
@@ -186,7 +183,7 @@ class Show extends Component
                 StockMovement::create([
                     'product_model_id' => $replacement->product_model_id,
                     'product_id'       => $replacement->id,
-                    'type'             => StockMovementType::SALE->value,
+                    'type'             => StockMovementType::SALE_OUT->value,
                     'quantity'         => 1,
                     'quantity_before'  => 1,
                     'quantity_after'   => 0,
@@ -198,6 +195,104 @@ class Show extends Component
             }
         });
 
+        $this->reloadSale();
+        $this->showReturnModal = false;
+        $this->success($this->replacement_id
+            ? 'Retour déclaré et remplacement effectué.'
+            : 'Retour déclaré. Le produit est dans la file "Retours fournisseur".'
+        );
+    }
+
+    // ─── Suppression avec confirmation mot de passe ───────────
+
+    public function openDeleteModal(): void
+    {
+        abort_unless(Auth::user()->hasPermission('cancel_sale'), 403);
+
+        $this->delete_password       = '';
+        $this->delete_reason         = '';
+        $this->delete_password_error = false;
+        $this->showDeleteModal       = true;
+        $this->resetErrorBag();
+    }
+
+    public function deleteSale(): void
+    {
+        abort_unless(Auth::user()->hasPermission('cancel_sale'), 403);
+
+        // ── 1. Valider motif + présence mot de passe ──────────
+        $this->validate([
+            'delete_reason'   => 'required|min:10',
+            'delete_password' => 'required',
+        ], [
+            'delete_reason.required'   => 'Un motif de suppression est obligatoire.',
+            'delete_reason.min'        => 'Le motif doit faire au moins 10 caractères.',
+            'delete_password.required' => 'Votre mot de passe est requis pour confirmer.',
+        ]);
+
+        // ── 2. Vérifier le mot de passe ───────────────────────
+        if (!Hash::check($this->delete_password, Auth::user()->password)) {
+            $this->delete_password_error = true;
+            $this->addError('delete_password', 'Mot de passe incorrect.');
+            return;
+        }
+
+        $this->delete_password_error = false;
+        $saleRef = $this->sale->reference;
+
+        DB::transaction(function () {
+
+            // ── 3. Remettre les produits vendus en stock ──────
+            // withoutEvents() désactive tous les boot hooks du modèle Product
+            // (saving, saved, updating...) qui causent l'erreur de cast enum
+            foreach ($this->sale->items as $item) {
+                if (!$item->product) continue;
+                if ($item->product->state->value !== ProductState::SOLD->value) continue;
+
+                Product::withoutEvents(function () use ($item) {
+                    $item->product->update([
+                        'state'      => ProductState::AVAILABLE->value,
+                        'location'   => ProductLocation::STORE->value,
+                        'updated_by' => Auth::id(),
+                    ]);
+                });
+
+                StockMovement::create([
+                    'product_model_id' => $item->product->product_model_id,
+                    'product_id'       => $item->product->id,
+                    'type'             => StockMovementType::CLIENT_RETURN->value,
+                    'quantity'         => 1,
+                    'quantity_before'  => 0,
+                    'quantity_after'   => 1,
+                    'location_from'    => ProductLocation::CLIENT->value,
+                    'location_to'      => ProductLocation::STORE->value,
+                    'notes'            => "Annulation vente {$this->sale->reference} — {$this->delete_reason}",
+                    'created_by'       => Auth::id(),
+                ]);
+            }
+
+            // ── 4. Annuler puis soft-delete ───────────────────
+            DB::table('sales')
+                ->where('id', $this->sale->id)
+                ->update(['sale_status' => 'cancelled', 'updated_at' => now()]);
+
+            $this->sale->delete();
+        });
+
+        // ── 5. Log d'activité ─────────────────────────────────
+        ActivityLogService::log(
+            action: 'delete',
+            description: "Suppression vente {$saleRef} — {$this->delete_reason}",
+            model: $this->sale,
+        );
+
+        $this->redirect(route('sales.index'), navigate: true);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────
+
+    private function reloadSale(): void
+    {
         $this->sale->refresh()->load([
             'items.productModel.brand',
             'items.product',
@@ -206,14 +301,6 @@ class Show extends Component
             'createdBy',
             'tradeInProduct.productModel',
         ]);
-
-        $this->showReturnModal = false;
-
-        $msg = $this->replacement_id
-            ? 'Retour déclaré et remplacement effectué.'
-            : 'Retour déclaré. Le produit est dans la file "Retours fournisseur".';
-
-        $this->success($msg);
     }
 
     public function render()

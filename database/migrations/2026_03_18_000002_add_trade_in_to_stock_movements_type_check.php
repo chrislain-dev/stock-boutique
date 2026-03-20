@@ -27,6 +27,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Ramener les types inconnus de l'ancienne contrainte
+        DB::table('stock_movements')
+            ->where('type', 'trade_in')
+            ->update(['type' => 'adjustment']);
+
         DB::statement('ALTER TABLE stock_movements DROP CONSTRAINT IF EXISTS stock_movements_type_check');
 
         DB::statement("

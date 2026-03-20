@@ -34,9 +34,9 @@ class Product extends Model
     protected $casts = [
         'state'          => ProductState::class,
         'location'       => ProductLocation::class,
-        'purchase_price' => 'decimal:2',
-        'client_price'   => 'decimal:2',
-        'reseller_price' => 'decimal:2',
+        'purchase_price' => 'integer',
+        'client_price'   => 'integer',
+        'reseller_price' => 'integer',
         'purchase_date'  => 'date',
     ];
 
@@ -146,7 +146,7 @@ class Product extends Model
         return $this->state === ProductState::SOLD;
     }
 
-    public function getMarginAttribute(): float
+    public function getMarginAttribute(): int
     {
         return $this->client_price - $this->purchase_price;
     }

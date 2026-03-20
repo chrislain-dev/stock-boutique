@@ -71,9 +71,9 @@ class Index extends Component
     public int $stock_minimum   = 0;
 
     // Prix
-    public ?float $default_purchase_price  = null;
-    public ?float $default_client_price    = null;
-    public ?float $default_reseller_price  = null;
+    public ?int $default_purchase_price  = null;
+    public ?int $default_client_price    = null;
+    public ?int $default_reseller_price  = null;
 
     protected function rules(): array
     {

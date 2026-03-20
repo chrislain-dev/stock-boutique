@@ -25,13 +25,13 @@ return new class extends Migration
             $table->unsignedInteger('quantity')->default(1);
 
             // ─── Prix ─────────────────────────────────────────────
-            $table->decimal('unit_purchase_price', 10, 2)
+            $table->unsignedBigInteger('unit_purchase_price')
                 ->comment('Prix d\'achat unitaire');
-            $table->decimal('unit_client_price', 10, 2)
+            $table->unsignedBigInteger('unit_client_price')
                 ->comment('Prix de vente client fixé à l\'achat');
-            $table->decimal('unit_reseller_price', 10, 2)
+            $table->unsignedBigInteger('unit_reseller_price')
                 ->comment('Prix de vente revendeur fixé à l\'achat');
-            $table->decimal('line_total', 10, 2)
+            $table->unsignedBigInteger('line_total')
                 ->comment('unit_purchase_price * quantity');
 
             // ─── Condition à l'entrée stock ───────────────────────

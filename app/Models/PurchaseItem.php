@@ -26,10 +26,10 @@ class PurchaseItem extends Model
 
     protected $casts = [
         'quantity'            => 'integer',
-        'unit_purchase_price' => 'decimal:2',
-        'unit_client_price'   => 'decimal:2',
-        'unit_reseller_price' => 'decimal:2',
-        'line_total'          => 'decimal:2',
+        'unit_purchase_price' => 'integer',
+        'unit_client_price'   => 'integer',
+        'unit_reseller_price' => 'integer',
+        'line_total'          => 'integer',
         'condition'           => ProductCondition::class,
     ];
 

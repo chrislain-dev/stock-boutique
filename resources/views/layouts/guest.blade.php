@@ -7,11 +7,10 @@
     <x-theme-vars />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    @stack('styles')  {{-- ← ajouter ceci --}}
 </head>
-<body class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-
+<body style="margin:0;padding:0;overflow:hidden;">
     {{ $slot }}
-
     @livewireScripts
 </body>
 </html>

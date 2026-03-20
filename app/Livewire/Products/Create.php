@@ -21,9 +21,9 @@ class Create extends Component
     // ─── Champs communs ───────────────────────────────────────
     public ?int $product_model_id  = null;
     public string $defects         = '';
-    public float $purchase_price   = 0;
-    public float $client_price     = 0;
-    public float $reseller_price   = 0;
+    public int $purchase_price   = 0;
+    public int $client_price     = 0;
+    public int $reseller_price   = 0;
     public string $purchase_date   = '';
     public ?int $supplier_id       = null;
     public string $notes           = '';

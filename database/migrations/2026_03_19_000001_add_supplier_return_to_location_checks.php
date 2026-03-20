@@ -1,7 +1,4 @@
 <?php
-// ══════════════════════════════════════════════════════════════════════════
-// FICHIER 1 : database/migrations/2026_03_19_000001_add_supplier_return_to_location_checks.php
-// ══════════════════════════════════════════════════════════════════════════
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // ── products.location ────────────────────────────────────────────
+        // ── products.location ─────────────────────────────────────────────
         DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_location_check');
         DB::statement("
             ALTER TABLE products
@@ -35,6 +32,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Ramener les locations inconnues de l'ancienne contrainte
+        DB::table('products')
+            ->where('location', 'supplier_return')
+            ->update(['location' => 'store']);
+
         DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_location_check');
         DB::statement("
             ALTER TABLE products
@@ -43,6 +45,11 @@ return new class extends Migration
                 'store', 'transit', 'client', 'reseller', 'repair_shop', 'reprise'
             ]::text[]))
         ");
+
+        // Ramener les states inconnus de l'ancienne contrainte
+        DB::table('products')
+            ->where('state', 'returned_to_supplier')
+            ->update(['state' => 'returned']);
 
         DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_state_check');
         DB::statement("

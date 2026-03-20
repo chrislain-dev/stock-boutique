@@ -23,7 +23,7 @@ class Reseller extends Model
 
     protected $casts = [
         'is_active'  => 'boolean',
-        'solde_du'   => 'decimal:2',
+        'solde_du'   => 'integer',
     ];
 
     // ─── Relations ────────────────────────────────────────────

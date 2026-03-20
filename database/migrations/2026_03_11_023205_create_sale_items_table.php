@@ -26,13 +26,13 @@ return new class extends Migration
 
             // ─── Prix au moment de la vente ───────────────────────
             // On snapshot les prix car ils peuvent changer après
-            $table->decimal('unit_price', 10, 2)
+            $table->unsignedBigInteger('unit_price')
                 ->comment('Prix unitaire au moment de la vente');
-            $table->decimal('purchase_price_snapshot', 10, 2)
+            $table->unsignedBigInteger('purchase_price_snapshot')
                 ->comment('Prix d\'achat au moment de la vente (pour calcul marge)');
-            $table->decimal('discount', 10, 2)->default(0)
+            $table->unsignedBigInteger('discount')->default(0)
                 ->comment('Remise accordée sur cette ligne');
-            $table->decimal('line_total', 10, 2)
+            $table->unsignedBigInteger('line_total')
                 ->comment('(unit_price - discount) * quantity');
 
             $table->timestamps();

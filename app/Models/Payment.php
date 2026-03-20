@@ -24,7 +24,7 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'amount'         => 'decimal:2',
+        'amount'         => 'integer',
         'payment_method' => PaymentMethod::class,
         'payment_date'   => 'date',
     ];

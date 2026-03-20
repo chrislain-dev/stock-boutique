@@ -66,7 +66,7 @@ class DashboardService
                 ->sum('paid_amount');
             return [
                 'label'  => $date->locale('fr')->dayName,
-                'amount' => (float) $sales,
+                'amount' => (int) $sales,
             ];
         });
 
@@ -83,7 +83,7 @@ class DashboardService
                 ->sum('paid_amount');
             return [
                 'label'  => 'Sem. ' . $start->week,
-                'amount' => (float) $sales,
+                'amount' => (int) $sales,
             ];
         });
 
@@ -99,7 +99,7 @@ class DashboardService
                 ->sum('paid_amount');
             return [
                 'label'  => now()->setMonth($month)->locale('fr')->monthName,
-                'amount' => (float) $sales,
+                'amount' => (int) $sales,
             ];
         });
 

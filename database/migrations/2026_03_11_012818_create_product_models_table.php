@@ -66,9 +66,9 @@ return new class extends Migration
             $table->unsignedInteger('stock_minimum')->default(0);
 
             // ─── Default prices ──────────────────────────────────
-            $table->decimal('default_purchase_price', 10, 2)->nullable();
-            $table->decimal('default_client_price', 10, 2)->nullable();
-            $table->decimal('default_reseller_price', 10, 2)->nullable();
+            $table->unsignedBigInteger('default_purchase_price')->nullable();
+            $table->unsignedBigInteger('default_client_price')->nullable();
+            $table->unsignedBigInteger('default_reseller_price')->nullable();
 
             $table->boolean('is_active')->default(true);
             $table->timestamps();

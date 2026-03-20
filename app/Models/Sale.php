@@ -34,9 +34,9 @@ class Sale extends Model
     ];
 
     protected $casts = [
-        'total_amount'    => 'decimal:2',
-        'paid_amount'     => 'decimal:2',
-        'trade_in_value'  => 'decimal:2',
+        'total_amount'    => 'integer',
+        'paid_amount'     => 'integer',
+        'trade_in_value'  => 'integer',
         'payment_status'  => PaymentStatus::class,
         'is_trade_in'     => 'boolean',
         'due_date'        => 'date',
@@ -137,7 +137,7 @@ class Sale extends Model
     }
 
     // ─── Accesseurs ───────────────────────────────────────────
-    public function getRemainingAmountAttribute(): float
+    public function getRemainingAmountAttribute(): int
     {
         return $this->total_amount - $this->paid_amount;
     }
@@ -189,8 +189,8 @@ class Sale extends Model
     }
 
     public static function computePaymentStatus(
-        float $paid,
-        float $total
+        int $paid,
+        int $total
     ): PaymentStatus {
         if ($paid >= $total) return PaymentStatus::PAID;
         if ($paid > 0)       return PaymentStatus::PARTIAL;

@@ -67,10 +67,10 @@ class ProductModelStatsService
                 ->sum('available_stock');
 
             $stats[$category] = [
-                'investment'  => (float) $totalInvestment,
-                'revenue'     => (float) $revenue,
-                'cost'        => (float) $cost,
-                'profit'      => (float) $profit,
+                'investment'  => (int) $totalInvestment,
+                'revenue'     => (int) $revenue,
+                'cost'        => (int) $cost,
+                'profit'      => (int) $profit,
                 'units_sold'  => (int) ($salesData->units_sold ?? 0),
                 'sales_count' => (int) ($salesData->sales_count ?? 0),
                 'models_count' => $modelsCount,

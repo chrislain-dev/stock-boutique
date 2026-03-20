@@ -20,9 +20,9 @@ return new class extends Migration
                 ->constrained()->restrictOnDelete();
 
             // ─── Montants ─────────────────────────────────────────
-            $table->decimal('total_amount', 10, 2)
+            $table->unsignedBigInteger('total_amount')->default(0)
                 ->comment('Montant total de la commande');
-            $table->decimal('paid_amount', 10, 2)->default(0)
+            $table->unsignedBigInteger('paid_amount')->default(0)
                 ->comment('Montant déjà payé au fournisseur');
 
             // ─── Statut paiement fournisseur ──────────────────────
