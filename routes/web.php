@@ -82,3 +82,7 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : view('welcome');
 });
+
+Route::get('/test-error', function () {
+    throw new \Exception('Test erreur WhatsApp notification');
+});

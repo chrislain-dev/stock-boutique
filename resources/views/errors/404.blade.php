@@ -3,60 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erreur 404</title>
+    <title>404 — Page introuvable</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&family=Geist:wght@300;400;500;600&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #000000;
+            --bg2:       #0a0a0a;
+            --border:    rgba(255,255,255,0.08);
+            --border2:   rgba(255,255,255,0.14);
+            --text1:     #ffffff;
+            --text2:     rgba(255,255,255,0.5);
+            --text3:     rgba(255,255,255,0.25);
+            --accent:    #ffffff;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text1);
+            font-family: 'Geist', -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        /* ── Noise grain ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 0; opacity: .6;
+        }
+
+        /* ── Grid ── */
+        .grid {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none; z-index: 0;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+        }
+
+        /* ── Layout ── */
+        .page {
+            position: relative; z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* ── Separator ── */
+        .separator {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 40px;
+            animation: fadeUp .5s cubic-bezier(.22,1,.36,1) both;
+        }
+
+        .sep-line {
+            width: 1px;
+            height: 40px;
+            background: var(--border2);
+        }
+
+        .sep-code {
+            font-family: 'Geist Mono', monospace;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text3);
+            letter-spacing: .08em;
+        }
+
+        /* ── Main block ── */
+        .block {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            animation: fadeUp .5s cubic-bezier(.22,1,.36,1) .06s both;
+        }
+
+        .divider {
+            width: 1px;
+            height: 56px;
+            background: var(--border2);
+            flex-shrink: 0;
+        }
+
+        .code {
+            font-family: 'Geist Mono', monospace;
+            font-size: clamp(1.1rem, 3vw, 1.35rem);
+            font-weight: 500;
+            color: var(--text1);
+            letter-spacing: -.01em;
+            white-space: nowrap;
+        }
+
+        .message {
+            font-size: clamp(.9rem, 2vw, 1rem);
+            font-weight: 400;
+            color: var(--text2);
+            letter-spacing: -.01em;
+            white-space: nowrap;
+        }
+
+        /* ── Actions ── */
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 40px;
+            animation: fadeUp .5s cubic-bezier(.22,1,.36,1) .12s both;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Geist', sans-serif;
+            text-decoration: none;
+            letter-spacing: -.01em;
+            transition: opacity .15s ease, background .15s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #ffffff;
+            color: #000000;
+        }
+        .btn-primary:hover { opacity: .88; }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text2);
+            border: 1px solid var(--border2);
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text1);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .btn svg {
+            width: 13px; height: 13px;
+            flex-shrink: 0;
+        }
+
+        /* ── Footer ── */
+        footer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 48px;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
+            border-top: 1px solid var(--border);
+            animation: fadeUp .4s ease .2s both;
         }
-        .container {
-            text-align: center;
-            background: white;
-            padding: 60px 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+
+        .footer-inner {
+            font-family: 'Geist Mono', monospace;
+            font-size: 11px;
+            color: var(--text3);
+            letter-spacing: .04em;
         }
-        h1 {
-            font-size: 72px;
-            color: #e74c3c;
-            margin-bottom: 20px;
-        }
-        p {
-            font-size: 18px;
-            color: #666;
-            margin-bottom: 30px;
-        }
-        a {
-            display: inline-block;
-            padding: 12px 32px;
-            background: #667eea;
-            color: white;
+
+        .footer-inner a {
+            color: var(--text3);
             text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
+            transition: color .15s ease;
         }
-        a:hover {
-            background: #764ba2;
+        .footer-inner a:hover { color: var(--text2); }
+
+        /* ── Animations ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+            .block { flex-direction: column; gap: 16px; text-align: center; }
+            .divider { width: 40px; height: 1px; }
+            .actions { flex-direction: column; width: 100%; max-width: 280px; }
+            .btn { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>404</h1>
-        <p>Page non trouvée</p>
-        <p style="font-size: 14px; color: #999; margin-bottom: 20px;">La ressource que vous cherchez n'existe pas.</p>
-        <a href="{{ url('/') }}">Retour à l'accueil</a>
+    <div class="grid"></div>
+
+    <div class="page">
+
+        <div class="separator">
+            <div class="sep-line"></div>
+            <span class="sep-code">ERR_NOT_FOUND</span>
+            <div class="sep-line"></div>
+        </div>
+
+        <div class="block">
+            <span class="code">404</span>
+            <div class="divider"></div>
+            <span class="message">Cette page n'existe pas.</span>
+        </div>
+
+        <div class="actions">
+            <a href="{{ url('/') }}" class="btn btn-primary">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L2 8l6 6M2 8h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Retour à l'accueil
+            </a>
+            <a href="javascript:history.back()" class="btn btn-ghost">
+                Page précédente
+            </a>
+        </div>
+
     </div>
+
+    <footer>
+        <span class="footer-inner">
+            {{ config('app.name') }} &mdash; <a href="{{ url('/') }}">{{ parse_url(url('/'), PHP_URL_HOST) }}</a>
+        </span>
+    </footer>
 </body>
 </html>

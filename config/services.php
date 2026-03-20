@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'callmebot' => [
+        'phone'  => env('CALLMEBOT_PHONE'),   // format international ex: +22997000000
+        'apikey' => env('CALLMEBOT_APIKEY'),
+    ],
+
 ];
