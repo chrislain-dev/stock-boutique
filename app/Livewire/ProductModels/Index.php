@@ -32,7 +32,7 @@ class Index extends Component
     public ?int $brand_id       = null;
     public string $model_number = '';
     public string $category     = '';
-    public string $condition    = '';
+    public string $condition    = 'new';
     public string $description  = '';
     public bool $is_serialized  = true;
     public bool $is_active      = true;
@@ -160,6 +160,10 @@ class Index extends Component
     public function updatedCategory(): void
     {
         $this->is_serialized = $this->category !== 'accessory';
+
+        if ($this->category === 'sextoys') {
+            $this->condition = 'sealed';
+        }
     }
 
     public function openCreateModal(): void
@@ -181,7 +185,7 @@ class Index extends Component
         $this->image                  = null;
         $this->is_serialized          = $model->is_serialized;
         $this->is_active              = $model->is_active;
-        $this->condition              = $model->condition?->value ?? '';
+        $this->condition              = $model->condition?->value ?? 'new';
         $this->color                  = $model->color ?? '';
         $this->ram_gb                 = $model->ram_gb;
         $this->storage_gb             = $model->storage_gb;
@@ -242,7 +246,7 @@ class Index extends Component
             'brand_id'                => $this->brand_id,
             'model_number'            => $this->model_number ?: null,
             'category'                => $this->category,
-            'condition'               => $this->condition ?: null,
+            'condition'               => $this->condition ?: 'sealed',
             'description'             => $this->description ?: null,
             'image_path'              => $imagePath,
             'is_serialized'           => $this->is_serialized,
@@ -375,6 +379,7 @@ class Index extends Component
         $this->is_active      = true;
         $this->quantity_stock = 0;
         $this->stock_minimum  = 0;
+        $this->condition = 'sealed';
     }
 
     public function headers(): array
