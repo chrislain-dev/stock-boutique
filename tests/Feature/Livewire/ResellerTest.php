@@ -6,16 +6,13 @@ use App\Models\Reseller;
 use App\Models\User;
 use Tests\TestCase;
 
-/**
- * Tests des règles métier Reseller — indépendants du composant Livewire.
- * Les tests Livewire complets seront ajoutés quand les composants seront fournis.
- */
 class ResellerTest extends TestCase
 {
     // ─── Accès ────────────────────────────────────────────────
 
     public function test_guest_cannot_access_resellers_page(): void
     {
+        $this->withExceptionHandling();
         $response = $this->get(route('resellers.index'));
         $response->assertRedirect(route('login'));
     }

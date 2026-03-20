@@ -207,7 +207,7 @@ class Show extends Component
 
     public function openDeleteModal(): void
     {
-        abort_unless(Auth::user()->hasPermission('cancel_sale'), 403);
+        if (!Auth::user()->hasPermission('cancel_sale')) { throw new \Symfony\Component\HttpKernel\Exception\HttpException(403); }
 
         $this->delete_password       = '';
         $this->delete_reason         = '';
@@ -218,15 +218,15 @@ class Show extends Component
 
     public function deleteSale(): void
     {
-        abort_unless(Auth::user()->hasPermission('cancel_sale'), 403);
+        if (!Auth::user()->hasPermission('cancel_sale')) { throw new \Symfony\Component\HttpKernel\Exception\HttpException(403); }
 
         // ── 1. Valider motif + présence mot de passe ──────────
         $this->validate([
-            'delete_reason'   => 'required|min:10',
+            'delete_reason'   => 'required|min:11',
             'delete_password' => 'required',
         ], [
             'delete_reason.required'   => 'Un motif de suppression est obligatoire.',
-            'delete_reason.min'        => 'Le motif doit faire au moins 10 caractères.',
+            'delete_reason.min'        => 'Le motif doit faire au moins 11 caractères.',
             'delete_password.required' => 'Votre mot de passe est requis pour confirmer.',
         ]);
 

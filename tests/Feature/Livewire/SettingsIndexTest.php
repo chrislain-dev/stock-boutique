@@ -30,9 +30,9 @@ class SettingsIndexTest extends TestCase
 
     public function test_vendeur_gets_403_on_settings(): void
     {
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
-
-        Livewire::actingAs($this->createVendeur())->test(Index::class);
+        Livewire::actingAs($this->createVendeur())
+            ->test(Index::class)
+            ->assertForbidden();
     }
 
     // ─── mount / loadSettings ─────────────────────────────────

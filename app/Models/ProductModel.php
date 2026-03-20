@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class ProductModel extends Model
 {
@@ -20,7 +21,7 @@ class ProductModel extends Model
         'category',
         'condition',
         'description',
-        'image_url',
+        'image_path',
         'is_serialized',
         'color',
         'ram_gb',
@@ -158,6 +159,13 @@ class ProductModel extends Model
         }
 
         return $label;
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path
+            ? Storage::url($this->image_path)
+            : null;
     }
 
     // ─── Scopes ───────────────────────────────────────────────

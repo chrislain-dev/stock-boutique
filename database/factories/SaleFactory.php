@@ -14,7 +14,7 @@ class SaleFactory extends Factory
 
     public function definition(): array
     {
-        $total  = $this->faker->random_int(10000, 500000);
+        $total  = $this->faker->numberBetween(10000, 500000);
         $paid   = $total; // fully paid by default
 
         return [
@@ -48,7 +48,7 @@ class SaleFactory extends Factory
     public function partial(float $ratio = 0.5): static
     {
         return $this->state(fn (array $attrs) => [
-            'paid_amount'    => $attrs['total_amount'] * $ratio,
+            'paid_amount'    => (int) ($attrs['total_amount'] * $ratio),
             'payment_status' => PaymentStatus::PARTIAL,
         ]);
     }
@@ -74,7 +74,7 @@ class SaleFactory extends Factory
     {
         return $this->state([
             'is_trade_in'    => true,
-            'trade_in_value' => $this->faker->random_int(5000, 50000),
+            'trade_in_value' => $this->faker->numberBetween(5000, 50000),
             'trade_in_notes' => 'Reprise appareil client',
         ]);
     }

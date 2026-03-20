@@ -73,9 +73,14 @@
         @foreach($brands as $brand)
         <div class="bg-white border border-gray-200 rounded-2xl p-5 hover:-translate-y-1 hover:shadow-lg hover:border-gray-300 transition-all duration-200 group">
             <div class="flex items-center justify-between mb-3.5">
-                <div class="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-semibold shrink-0"
-                     style="background: {{ $brand->avatar_bg ?? '#f0f0f0' }}; color: {{ $brand->avatar_color ?? '#111' }}">
-                    {{ strtoupper(substr($brand->name, 0, 2)) }}
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-semibold shrink-0 overflow-hidden"
+                    style="background: {{ $brand->avatar_bg ?? '#f0f0f0' }}; color: {{ $brand->avatar_color ?? '#111' }}">
+                    @if($brand->logo_url)
+                        <img src="{{ $brand->logo_url }}" alt="{{ $brand->name }}"
+                            class="w-full h-full object-contain p-1"/>
+                    @else
+                        {{ strtoupper(substr($brand->name, 0, 2)) }}
+                    @endif
                 </div>
                 @if(auth()->user()->isAdmin())
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -123,9 +128,14 @@
                 @foreach($brands as $brand)
                 <div class="grid grid-cols-[2fr_1fr_1fr_1fr_80px] px-5 py-3.5 border-b border-gray-100 last:border-none items-center hover:bg-gray-50 transition-colors">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-semibold shrink-0"
-                             style="background: {{ $brand->avatar_bg ?? '#f0f0f0' }}; color: {{ $brand->avatar_color ?? '#111' }}">
-                            {{ strtoupper(substr($brand->name, 0, 2)) }}
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-semibold shrink-0 overflow-hidden"
+                            style="background: {{ $brand->avatar_bg ?? '#f0f0f0' }}; color: {{ $brand->avatar_color ?? '#111' }}">
+                            @if($brand->logo_url)
+                                <img src="{{ $brand->logo_url }}" alt="{{ $brand->name }}"
+                                    class="w-full h-full object-contain p-1"/>
+                            @else
+                                {{ strtoupper(substr($brand->name, 0, 2)) }}
+                            @endif
                         </div>
                         <p class="text-sm font-medium text-gray-900 truncate">{{ $brand->name }}</p>
                     </div>
@@ -165,13 +175,74 @@
     <div class="mt-4">{{ $brands->links() }}</div>
 
     {{-- Modal création / édition --}}
-    <x-mary-modal wire:model="showModal" :title="$editingId ? 'Modifier la marque' : 'Nouvelle marque'">
+    <x-mary-modal wire:model="showModal"
+                  :title="$editingId ? 'Modifier la marque' : 'Nouvelle marque'"
+                  box-class="w-full max-w-lg mx-4">
         <x-mary-form wire:submit="save">
             <x-mary-input label="Nom de la marque" wire:model="name"
                 placeholder="Ex: Apple, Samsung..." icon="o-tag" required/>
-            <x-mary-input label="URL du logo" wire:model="logo_url"
-                placeholder="https://..." icon="o-photo"/>
+
+            {{-- Logo upload --}}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Logo</label>
+
+                {{-- Prévisualisation logo existant --}}
+                @if($existingLogoPath && !$logo)
+                    <div class="flex items-center gap-2 mb-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl min-w-0 overflow-hidden">
+                        <img src="{{ Storage::url($existingLogoPath) }}"
+                            alt="Logo actuel"
+                            class="w-10 h-10 object-contain rounded-lg border border-gray-100 bg-white p-1 shrink-0"/>
+                        <div class="flex-1 min-w-0 overflow-hidden">
+                            <p class="text-xs font-medium text-gray-700 truncate">Logo actuel</p>
+                            <p class="text-xs text-gray-400 truncate">{{ basename($existingLogoPath) }}</p>
+                        </div>
+                        <button type="button" wire:click="removeLogo"
+                                class="w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100
+                                    flex items-center justify-center transition-colors shrink-0">
+                            <x-heroicon-o-trash class="w-3.5 h-3.5"/>
+                        </button>
+                    </div>
+                @endif
+
+                {{-- Prévisualisation fichier sélectionné (temporaire Livewire) --}}
+                @if($logo)
+                    <div class="flex items-center gap-2 mb-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl min-w-0 overflow-hidden">
+                        <img src="{{ $logo->temporaryUrl() }}"
+                            alt="Nouveau logo"
+                            class="w-10 h-10 object-contain rounded-lg border border-indigo-100 bg-white p-1 shrink-0"/>
+                        <div class="flex-1 min-w-0 overflow-hidden">
+                            <p class="text-xs font-medium text-indigo-700 truncate">Nouveau logo sélectionné</p>
+                            <p class="text-xs text-indigo-400 truncate">{{ $logo->getClientOriginalName() }}</p>
+                        </div>
+                        <button type="button" wire:click="$set('logo', null)"
+                                class="w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100
+                                    flex items-center justify-center transition-colors shrink-0">
+                            <x-heroicon-o-x-mark class="w-3.5 h-3.5"/>
+                        </button>
+                    </div>
+                @endif
+
+                {{-- Input file --}}
+                <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed
+                            border-gray-200 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100
+                            hover:border-indigo-300 transition-colors group">
+                    <div class="flex flex-col items-center gap-1">
+                        <x-heroicon-o-arrow-up-tray class="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors"/>
+                        <p class="text-xs text-gray-500 group-hover:text-indigo-600 text-center">
+                            <span class="font-medium">Cliquer pour uploader</span> ou glisser-déposer
+                        </p>
+                        <p class="text-[10px] text-gray-400">PNG, JPG, WebP — max 2 Mo</p>
+                    </div>
+                    <input type="file" wire:model="logo" accept="image/*" class="hidden"/>
+                </label>
+
+                @error('logo')
+                    <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <x-mary-toggle label="Marque active" wire:model="is_active"/>
+
             <x-slot:actions>
                 <x-mary-button label="Annuler" wire:click="$set('showModal', false)" class="btn-ghost"/>
                 <x-mary-button label="Sauvegarder" type="submit" class="btn-primary" spinner="save"/>
@@ -180,7 +251,9 @@
     </x-mary-modal>
 
     {{-- Modal confirmation suppression --}}
-    <x-mary-modal wire:model="showDeleteModal" title="Confirmer la suppression">
+    <x-mary-modal wire:model="showDeleteModal"
+                  title="Confirmer la suppression"
+                  box-class="w-full max-w-sm mx-4">
         <p class="text-gray-600">Êtes-vous sûr de vouloir supprimer cette marque ? Cette action est irréversible.</p>
         <x-slot:actions>
             <x-mary-button label="Annuler" wire:click="$set('showDeleteModal', false)" class="btn-ghost"/>

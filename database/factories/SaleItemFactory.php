@@ -15,8 +15,8 @@ class SaleItemFactory extends Factory
     public function definition(): array
     {
         $qty        = 1;
-        $unitPrice  = $this->faker->random_int(10000, 300000);
-        $purchPrice = $unitPrice * 0.8;
+        $unitPrice  = $this->faker->numberBetween(10000, 300000);
+        $purchPrice = (int) ($unitPrice * 0.8);
         $discount   = 0;
 
         return [

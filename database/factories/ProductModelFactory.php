@@ -20,9 +20,9 @@ class ProductModelFactory extends Factory
             'is_active'              => true,
             'quantity_stock'         => 0,
             'stock_minimum'          => 2,
-            'default_purchase_price' => $this->faker->random_int(50000, 500000),
-            'default_client_price'   => $this->faker->random_int(60000, 600000),
-            'default_reseller_price' => $this->faker->random_int(55000, 550000),
+            'default_purchase_price' => $this->faker->numberBetween(50000, 500000),
+            'default_client_price'   => $this->faker->numberBetween(60000, 600000),
+            'default_reseller_price' => $this->faker->numberBetween(55000, 550000),
         ];
     }
 

@@ -5,11 +5,13 @@ namespace App\Livewire\Brands;
 use App\Models\Brand;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
 use Mary\Traits\Toast;
 
 class Index extends Component
 {
-    use WithPagination, Toast;
+    use WithPagination, Toast, WithFileUploads;
 
     public string $viewMode = 'grid';
 
@@ -23,9 +25,10 @@ class Index extends Component
 
     // ─── Formulaire ───────────────────────────────────────────
     public ?int $editingId = null;
-    public string $name     = '';
-    public ?string $logo_url = null;
-    public bool $is_active  = true;
+    public string $name      = '';
+    public $logo             = null; // fichier temporaire Livewire
+    public ?string $existingLogoPath = null; // logo déjà stocké
+    public bool $is_active   = true;
 
     // ─── Suppression ─────────────────────────────────────────
     public ?int $deletingId = null;
@@ -33,8 +36,8 @@ class Index extends Component
     protected function rules(): array
     {
         return [
-            'name'      => 'required|string|max:100|unique:brands,name,' . ($this->editingId ?? 'NULL'),
-            'logo_url'  => 'nullable|url|max:255',
+            'name'  => 'required|string|max:100|unique:brands,name,' . ($this->editingId ?? 'NULL'),
+            'logo'  => 'nullable|image|max:2048', // 2 Mo max
             'is_active' => 'boolean',
         ];
     }
@@ -42,10 +45,10 @@ class Index extends Component
     protected $messages = [
         'name.required' => 'Le nom de la marque est obligatoire.',
         'name.unique'   => 'Cette marque existe déjà.',
-        'logo_url.url'  => 'L\'URL du logo n\'est pas valide.',
+        'logo.image'    => 'Le fichier doit être une image.',
+        'logo.max'      => 'L\'image ne doit pas dépasser 2 Mo.',
     ];
 
-    // ─── Reset pagination si recherche ────────────────────────
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -54,7 +57,7 @@ class Index extends Component
     // ─── Ouvrir modal création ────────────────────────────────
     public function openCreateModal(): void
     {
-        $this->reset(['editingId', 'name', 'logo_url']);
+        $this->reset(['editingId', 'name', 'logo', 'existingLogoPath']);
         $this->is_active = true;
         $this->showModal = true;
     }
@@ -63,11 +66,25 @@ class Index extends Component
     public function openEditModal(int $id): void
     {
         $brand = Brand::findOrFail($id);
-        $this->editingId = $brand->id;
-        $this->name      = $brand->name;
-        $this->logo_url  = $brand->logo_url;
-        $this->is_active = $brand->is_active;
-        $this->showModal = true;
+        $this->editingId        = $brand->id;
+        $this->name             = $brand->name;
+        $this->existingLogoPath = $brand->logo_path;
+        $this->logo             = null;
+        $this->is_active        = $brand->is_active;
+        $this->showModal        = true;
+    }
+
+    // ─── Supprimer le logo existant ───────────────────────────
+    public function removeLogo(): void
+    {
+        if ($this->existingLogoPath) {
+            Storage::disk('public')->delete($this->existingLogoPath);
+            $this->existingLogoPath = null;
+
+            if ($this->editingId) {
+                Brand::findOrFail($this->editingId)->update(['logo_path' => null]);
+            }
+        }
     }
 
     // ─── Sauvegarder ─────────────────────────────────────────
@@ -75,24 +92,32 @@ class Index extends Component
     {
         $this->validate();
 
+        $logoPath = $this->existingLogoPath; // garde l'ancien par défaut
+
+        if ($this->logo) {
+            // Supprimer l'ancien logo si édition
+            if ($this->existingLogoPath) {
+                Storage::disk('public')->delete($this->existingLogoPath);
+            }
+            $logoPath = $this->logo->store('brands/logos', 'public');
+        }
+
+        $data = [
+            'name'      => $this->name,
+            'logo_path' => $logoPath,
+            'is_active' => $this->is_active,
+        ];
+
         if ($this->editingId) {
-            Brand::findOrFail($this->editingId)->update([
-                'name'      => $this->name,
-                'logo_url'  => $this->logo_url,
-                'is_active' => $this->is_active,
-            ]);
+            Brand::findOrFail($this->editingId)->update($data);
             $this->success('Marque mise à jour avec succès.');
         } else {
-            Brand::create([
-                'name'      => $this->name,
-                'logo_url'  => $this->logo_url,
-                'is_active' => $this->is_active,
-            ]);
+            Brand::create($data);
             $this->success('Marque créée avec succès.');
         }
 
         $this->showModal = false;
-        $this->reset(['editingId', 'name', 'logo_url']);
+        $this->reset(['editingId', 'name', 'logo', 'existingLogoPath']);
     }
 
     // ─── Confirmer suppression ────────────────────────────────
@@ -113,20 +138,24 @@ class Index extends Component
             return;
         }
 
+        // Supprimer le fichier logo associé
+        if ($brand->logo_path) {
+            Storage::disk('public')->delete($brand->logo_path);
+        }
+
         $brand->delete();
         $this->success('Marque supprimée.');
         $this->showDeleteModal = false;
         $this->deletingId = null;
     }
 
-    // ─── Headers table ────────────────────────────────────────
     public function headers(): array
     {
         return [
-            ['key' => 'name',       'label' => 'Marque',    'sortable' => true],
-            ['key' => 'models_count', 'label' => 'Modèles',  'sortable' => false],
-            ['key' => 'is_active',  'label' => 'Statut',    'sortable' => true],
-            ['key' => 'created_at', 'label' => 'Créée le',  'sortable' => true],
+            ['key' => 'name',          'label' => 'Marque',   'sortable' => true],
+            ['key' => 'products_count', 'label' => 'Produits',  'sortable' => false],
+            ['key' => 'is_active',     'label' => 'Statut',   'sortable' => true],
+            ['key' => 'created_at',    'label' => 'Créée le', 'sortable' => true],
         ];
     }
 

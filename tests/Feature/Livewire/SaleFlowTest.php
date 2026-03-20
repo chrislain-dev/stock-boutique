@@ -18,6 +18,7 @@ class SaleFlowTest extends TestCase
 
     public function test_guest_cannot_access_sales_page(): void
     {
+        $this->withExceptionHandling();
         $this->get(route('sales.index'))->assertRedirect(route('login'));
     }
 
@@ -162,7 +163,7 @@ class SaleFlowTest extends TestCase
         $this->actingAs($user);
 
         Sale::factory()->overdue()->create(['created_by' => $user->id]);
-        Sale::factory()->create(['created_by' => $user->id]); // paid, no due date
+        Sale::factory()->create(['created_by' => $user->id]);
 
         $this->assertCount(1, Sale::overdue()->get());
     }
@@ -213,21 +214,6 @@ class SaleFlowTest extends TestCase
 
         $this->assertSoftDeleted($sale);
     }
-
-    // public function test_vendeur_cannot_access_sale_cancel_route(): void
-    // {
-    //     $vendeur = $this->createVendeur();
-    //     $user    = User::factory()->create(['is_active' => true]);
-    //     $this->actingAs($user);
-
-    //     $sale = Sale::factory()->create(['created_by' => $user->id]);
-
-    //     $this->actingAs($vendeur);
-    //     $response = $this->delete(route('sales.destroy', $sale));
-
-    //     // Vendeur ne peut pas annuler — 403 ou redirect
-    //     $response->assertStatus(403);
-    // }
 
     // ─── Remaining amount ─────────────────────────────────────
 

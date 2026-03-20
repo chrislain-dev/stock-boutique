@@ -87,29 +87,21 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         @foreach($categories as $i => $cat)
         @php
-            $stat = $categoryStats[$cat->value] ?? [];
+            $stat  = $categoryStats[$cat->value] ?? [];
             $anims = ['anim-1','anim-2','anim-3','anim-4','anim-5','anim-6'];
-            $anim = $anims[$i % 6];
+            $anim  = $anims[$i % 6];
         @endphp
         <div class="{{ $anim }} cat-card" wire:click="$set('selectedCategory', '{{ $cat->value }}')">
-
-            {{-- Icône + Titre --}}
             <div class="flex items-center gap-3 mb-4">
                 <div class="cat-icon">
                     <x-mary-icon name="o-{{ $cat->icon() }}" class="w-5 h-5" />
                 </div>
                 <div>
                     <p class="font-semibold text-sm text-zinc-900">{{ $cat->label() }}</p>
-                    <p class="text-xs text-zinc-400">
-                        {{ $stat['models_count'] ?? 0 }} modèle(s)
-                    </p>
+                    <p class="text-xs text-zinc-400">{{ $stat['models_count'] ?? 0 }} modèle(s)</p>
                 </div>
             </div>
-
-            {{-- Séparateur --}}
             <div class="border-t border-zinc-50 mb-3"></div>
-
-            {{-- Badge stock --}}
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs text-zinc-400">En stock</span>
                 <span class="text-xs font-semibold px-2 py-0.5 rounded-lg
@@ -117,8 +109,6 @@
                     {{ $stat['stock_count'] ?? 0 }} unité(s)
                 </span>
             </div>
-
-            {{-- Stats admin --}}
             @if(auth()->user()->isAdmin())
             <div>
                 <div class="stat-row">
@@ -148,8 +138,6 @@
                 </span>
             </div>
             @endif
-
-            {{-- Flèche --}}
             <div class="flex justify-end mt-3">
                 <x-mary-icon name="o-arrow-right" class="w-3.5 h-3.5 text-zinc-300" />
             </div>
@@ -163,14 +151,9 @@
     <div class="anim-2 flex items-center gap-3 mb-5 flex-wrap">
         <div class="relative">
             <x-mary-icon name="o-magnifying-glass" class="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-                wire:model.live.debounce="search"
-                type="text"
-                placeholder="Rechercher un modèle..."
-                class="pl-9 pr-4 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-400 transition-colors w-56"
-            />
+            <input wire:model.live.debounce="search" type="text" placeholder="Rechercher un modèle..."
+                class="pl-9 pr-4 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-zinc-400 transition-colors w-56"/>
         </div>
-
         <select wire:model.live="filterBrand"
             class="text-sm text-zinc-600 bg-white border border-zinc-200 rounded-lg px-3 py-2 focus:outline-none focus:border-zinc-400 transition-colors">
             <option value="">Toutes marques</option>
@@ -178,7 +161,6 @@
             <option value="{{ $brand->id }}">{{ $brand->name }}</option>
             @endforeach
         </select>
-
         @if(auth()->user()->isAdmin())
         <button wire:click="openCreateModal"
             class="ml-auto flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all hover:-translate-y-0.5 hover:shadow-md"
@@ -196,14 +178,24 @@
             :rows="$productModels"
             :sort-by="$sortBy"
             wire:model="sortBy"
-            with-pagination
-        >
+            with-pagination>
+
             @scope('cell_full_name', $model)
-            <div>
-                <p class="text-sm font-medium text-zinc-900">{{ $model->full_name }}</p>
-                @if($model->model_number)
-                <p class="text-xs text-zinc-400 font-mono mt-0.5">{{ $model->model_number }}</p>
-                @endif
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-lg border border-zinc-100 bg-zinc-50 flex items-center justify-center shrink-0 overflow-hidden">
+                    @if($model->image_url)
+                        <img src="{{ $model->image_url }}" alt="{{ $model->name }}"
+                             class="w-full h-full object-contain p-0.5"/>
+                    @else
+                        <x-mary-icon name="o-photo" class="w-4 h-4 text-zinc-300"/>
+                    @endif
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-zinc-900 truncate">{{ $model->full_name }}</p>
+                    @if($model->model_number)
+                    <p class="text-xs text-zinc-400 font-mono mt-0.5">{{ $model->model_number }}</p>
+                    @endif
+                </div>
             </div>
             @endscope
 
@@ -249,13 +241,11 @@
             <div class="flex items-center gap-1">
                 @if(auth()->user()->isAdmin())
                 <button wire:click="openEditModal({{ $model->id }})"
-                    class="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                    title="Modifier">
+                    class="p-1.5 rounded-lg text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Modifier">
                     <x-mary-icon name="o-pencil" class="w-3.5 h-3.5" />
                 </button>
                 <button wire:click="confirmDelete({{ $model->id }})"
-                    class="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    title="Supprimer">
+                    class="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Supprimer">
                     <x-mary-icon name="o-trash" class="w-3.5 h-3.5" />
                 </button>
                 @endif
@@ -268,9 +258,9 @@
     {{-- Modal création / édition --}}
     <x-mary-modal wire:model="showModal"
         :title="$editingId ? 'Modifier le modèle' : 'Nouveau modèle'"
-        box-class="max-w-3xl"
-    >
+        box-class="w-full max-w-3xl mx-4">
         <x-mary-form wire:submit="save">
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <x-mary-input label="Nom du modèle" wire:model="name" placeholder="Ex: iPhone 15 Pro" required />
                 <x-mary-select label="Marque" wire:model="brand_id"
@@ -289,6 +279,65 @@
                     placeholder="Choisir la condition" required />
                 @endif
                 <x-mary-input label="Numéro de modèle" wire:model="model_number" placeholder="Ex: A2848" />
+            </div>
+
+            {{-- ── Image ───────────────────────────────────────── --}}
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-zinc-700 mb-1.5">Image du modèle</label>
+
+                {{-- Preview image existante --}}
+                @if($existingImagePath && !$image)
+                    <div class="flex items-center gap-2 mb-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl min-w-0 overflow-hidden">
+                        <img src="{{ Storage::url($existingImagePath) }}"
+                             alt="Image actuelle"
+                             class="w-10 h-10 object-contain rounded-lg border border-gray-100 bg-white p-1 shrink-0"/>
+                        <div class="flex-1 min-w-0 overflow-hidden">
+                            <p class="text-xs font-medium text-gray-700 truncate">Image actuelle</p>
+                            <p class="text-xs text-gray-400 truncate">{{ basename($existingImagePath) }}</p>
+                        </div>
+                        <button type="button" wire:click="removeImage"
+                                class="w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100
+                                       flex items-center justify-center transition-colors shrink-0">
+                            <x-heroicon-o-trash class="w-3.5 h-3.5"/>
+                        </button>
+                    </div>
+                @endif
+
+                {{-- Preview nouvelle image sélectionnée --}}
+                @if($image)
+                    <div class="flex items-center gap-2 mb-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl min-w-0 overflow-hidden">
+                        <img src="{{ $image->temporaryUrl() }}"
+                             alt="Nouvelle image"
+                             class="w-10 h-10 object-contain rounded-lg border border-indigo-100 bg-white p-1 shrink-0"/>
+                        <div class="flex-1 min-w-0 overflow-hidden">
+                            <p class="text-xs font-medium text-indigo-700 truncate">Nouvelle image sélectionnée</p>
+                            <p class="text-xs text-indigo-400 truncate">{{ $image->getClientOriginalName() }}</p>
+                        </div>
+                        <button type="button" wire:click="$set('image', null)"
+                                class="w-7 h-7 rounded-lg bg-red-50 text-red-500 hover:bg-red-100
+                                       flex items-center justify-center transition-colors shrink-0">
+                            <x-heroicon-o-x-mark class="w-3.5 h-3.5"/>
+                        </button>
+                    </div>
+                @endif
+
+                {{-- Zone de drop --}}
+                <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed
+                              border-gray-200 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100
+                              hover:border-indigo-300 transition-colors group">
+                    <div class="flex flex-col items-center gap-1">
+                        <x-heroicon-o-arrow-up-tray class="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors"/>
+                        <p class="text-xs text-gray-500 group-hover:text-indigo-600 text-center">
+                            <span class="font-medium">Cliquer pour uploader</span> ou glisser-déposer
+                        </p>
+                        <p class="text-[10px] text-gray-400">PNG, JPG, WebP — max 3 Mo</p>
+                    </div>
+                    <input type="file" wire:model="image" accept="image/*" class="hidden"/>
+                </label>
+
+                @error('image')
+                    <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             @if(in_array($category, ['telephone', 'pc', 'tablet']))
@@ -383,7 +432,9 @@
     </x-mary-modal>
 
     {{-- Modal suppression --}}
-    <x-mary-modal wire:model="showDeleteModal" title="Confirmer la suppression">
+    <x-mary-modal wire:model="showDeleteModal"
+                  title="Confirmer la suppression"
+                  box-class="w-full max-w-sm mx-4">
         <div class="flex items-start gap-4 py-2">
             <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
                 <x-mary-icon name="o-exclamation-triangle" class="w-5 h-5 text-red-500" />

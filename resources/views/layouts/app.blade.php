@@ -255,8 +255,8 @@
 
         /* ── Animations ──────────────────────────────── */
         @keyframes contentFadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
         @keyframes sidebarItemIn {
             from { opacity: 0; transform: translateX(-8px); }
@@ -367,7 +367,7 @@
                 <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                 <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
             </svg>
-            Dashboard
+            Tableau de Bord
         </a>
 
         <p class="sidebar-section-label" style="animation-delay:30ms">Catalogue</p>

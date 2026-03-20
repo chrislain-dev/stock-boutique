@@ -38,11 +38,10 @@ class SaleDeleteTest extends TestCase
         $vendeur = $this->createVendeur();
         $sale    = Sale::factory()->create(['created_by' => $admin->id]);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
-
         Livewire::actingAs($vendeur)
             ->test(Show::class, ['sale' => $sale])
-            ->call('openDeleteModal');
+            ->call('openDeleteModal')
+            ->assertForbidden();
     }
 
     // ─── Validation champs ────────────────────────────────────
@@ -315,12 +314,11 @@ class SaleDeleteTest extends TestCase
         ]);
         $sale = Sale::factory()->create(['created_by' => $admin->id]);
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
-
         Livewire::actingAs($vendeur)
             ->test(Show::class, ['sale' => $sale])
             ->set('delete_reason', 'Tentative vendeur non autorisée')
             ->set('delete_password', 'password123')
-            ->call('deleteSale');
+            ->call('deleteSale')
+            ->assertForbidden();
     }
 }

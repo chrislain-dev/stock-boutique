@@ -33,6 +33,11 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* ─── Responsive : autoriser le scroll sur mobile ─── */
+        @media (max-width: 640px) {
+            body { height: auto; overflow: auto; }
+        }
+
         /* ─── Grid ─── */
         .grid-bg {
             position: fixed; inset: 0;
@@ -105,6 +110,10 @@
             flex-direction: column;
         }
 
+        @media (max-width: 640px) {
+            .page { height: auto; min-height: 100vh; }
+        }
+
         /* ─── Nav ─── */
         nav {
             display: flex; align-items: center; justify-content: space-between;
@@ -116,11 +125,16 @@
             flex-shrink: 0;
         }
 
-        .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        @media (max-width: 400px) {
+            nav { padding: 0 1rem; }
+        }
+
+        .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; min-width: 0; }
 
         .nav-logo {
             width: 30px; height: 30px; border-radius: 8px; background: #fff;
             display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
         }
         .nav-logo span {
             font-family: 'Bricolage Grotesque', sans-serif;
@@ -129,10 +143,12 @@
         .nav-name {
             font-family: 'Bricolage Grotesque', sans-serif;
             font-weight: 700; font-size: 15px; color: var(--text1); letter-spacing: -0.02em;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .nav-badge {
             font-size: 11px; font-weight: 400; color: var(--text3);
             border: 1px solid var(--border2); padding: 2px 8px; border-radius: 100px;
+            white-space: nowrap; flex-shrink: 0;
         }
 
         /* ─── Hero : flex:1 pour occuper tout l'espace restant ─── */
@@ -141,8 +157,12 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             text-align: center;
-            padding: 0 2rem;
+            padding: 2.5rem 1.5rem;
             gap: 0;
+        }
+
+        @media (max-width: 640px) {
+            .hero { justify-content: flex-start; padding: 2rem 1.25rem 2.5rem; }
         }
 
         /* ─── Logo pill ─── */
@@ -186,11 +206,19 @@
         }
         .hero-title .dim { color: rgba(255,255,255,0.28); }
 
+        @media (max-width: 400px) {
+            .hero-title { font-size: 2.1rem; }
+        }
+
         .hero-sub {
             font-size: 15px; font-weight: 300; line-height: 1.65;
             color: var(--text2); max-width: 460px;
             margin: 0 auto 2.2rem;
             animation: fadeUp .6s cubic-bezier(.22,1,.36,1) .2s both;
+        }
+
+        @media (max-width: 640px) {
+            .hero-sub { font-size: 14px; }
         }
 
         /* ─── CTA ─── */
@@ -199,6 +227,12 @@
             flex-wrap: wrap; justify-content: center;
             margin-bottom: 3rem;
             animation: fadeUp .6s cubic-bezier(.22,1,.36,1) .28s both;
+        }
+
+        @media (max-width: 480px) {
+            .cta-group { flex-direction: column; width: 100%; max-width: 320px; }
+            .cta-group .btn-primary,
+            .cta-group .btn-outline { width: 100%; justify-content: center; }
         }
 
         .btn-primary {
@@ -249,12 +283,28 @@
             animation: fadeUp .6s cubic-bezier(.22,1,.36,1) .36s both;
         }
 
+        @media (max-width: 860px) {
+            .features { max-width: 100%; }
+        }
+
+        @media (max-width: 640px) {
+            .features { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 360px) {
+            .features { grid-template-columns: 1fr; }
+        }
+
         .feat {
             padding: 20px 22px 18px;
             background: var(--bg2);
             transition: background .2s ease;
         }
         .feat:hover { background: rgba(255,255,255,0.03); }
+
+        @media (max-width: 640px) {
+            .feat { padding: 16px 18px 14px; }
+        }
 
         .feat-icon {
             width: 28px; height: 28px; border-radius: 7px;
@@ -287,6 +337,17 @@
         }
         footer a:hover { color: var(--text2); }
 
+        @media (max-width: 520px) {
+            footer {
+                flex-direction: column;
+                justify-content: center;
+                gap: 4px;
+                height: auto;
+                padding: 12px 1.25rem;
+                text-align: center;
+            }
+        }
+
         /* ─── Animations ─── */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(16px); }
@@ -315,9 +376,16 @@
 
         <nav>
             <a href="#" class="nav-brand">
-                <div class="nav-logo">
-                    <span>{{ strtoupper(substr(Setting::get('boutique.nom', config('boutique.nom')), 0, 2)) }}</span>
-                </div>
+                @php $logo = \App\Models\Setting::get('boutique.logo'); @endphp
+                @if($logo)
+                    <img src="{{ \Illuminate\Support\Facades\Storage::url($logo) }}"
+                         alt="Logo"
+                         style="height:30px;width:auto;object-fit:contain;display:block;flex-shrink:0;"/>
+                @else
+                    <div class="nav-logo">
+                        <span>{{ strtoupper(substr(Setting::get('boutique.nom', config('boutique.nom')), 0, 2)) }}</span>
+                    </div>
+                @endif
                 <span class="nav-name">{{ Setting::get('boutique.nom', config('boutique.nom')) }}</span>
             </a>
             <span class="nav-badge">v{{ config('app.version', '1.0') }}</span>

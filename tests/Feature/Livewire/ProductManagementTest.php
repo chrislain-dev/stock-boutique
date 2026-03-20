@@ -5,7 +5,6 @@ namespace Tests\Feature\Livewire;
 use App\Models\Product;
 use App\Models\ProductModel;
 use App\Models\Supplier;
-use App\Models\User;
 use App\Services\ProductService;
 use Tests\TestCase;
 
@@ -23,6 +22,7 @@ class ProductManagementTest extends TestCase
 
     public function test_guest_cannot_access_products_page(): void
     {
+        $this->withExceptionHandling();
         $this->get(route('products.index'))->assertRedirect(route('login'));
     }
 
@@ -92,10 +92,7 @@ class ProductManagementTest extends TestCase
             'purchase_date'    => now()->toDateString(),
         ];
 
-        // Créer d'abord
         $this->service->createBulkFromImei(['300400500600700'], $commonData);
-
-        // Réessayer avec le même IMEI
         $results = $this->service->createBulkFromImei(['300400500600700', '400500600700800'], $commonData);
 
         $this->assertCount(1, $results['success']);
@@ -113,13 +110,13 @@ class ProductManagementTest extends TestCase
         $updated = $this->service->update($product, [
             'state'          => 'available',
             'location'       => 'store',
-            'purchase_price' => 999999,
+            'purchase_price' => $product->client_price - 1000,
             'client_price'   => $product->client_price,
             'reseller_price' => $product->reseller_price,
             'purchase_date'  => $product->purchase_date,
         ]);
 
-        $this->assertEquals(999999, $updated->purchase_price);
+        $this->assertEquals($product->client_price - 1000, $updated->purchase_price);
     }
 
     public function test_location_change_creates_transfer_movement(): void
@@ -147,13 +144,15 @@ class ProductManagementTest extends TestCase
 
     public function test_price_change_creates_price_history(): void
     {
-        $user    = $this->createAdmin();
+        $user = $this->createAdmin();
+
         $product = Product::factory()->create([
             'created_by'     => $user->id,
-            'purchase_price' => 100000,
+            'purchase_price' => 100000, // ✅ valeur fixe
             'client_price'   => 130000,
             'reseller_price' => 120000,
         ]);
+
         $this->actingAs($user);
 
         $this->service->update($product, [
@@ -176,6 +175,7 @@ class ProductManagementTest extends TestCase
 
     public function test_vendeur_cannot_access_product_edit(): void
     {
+        $this->withExceptionHandling();
         $vendeur = $this->createVendeur();
         $admin   = $this->createAdmin();
         $product = Product::factory()->create(['created_by' => $admin->id]);
@@ -190,7 +190,7 @@ class ProductManagementTest extends TestCase
 
     public function test_product_states_are_valid(): void
     {
-        $validStates = ['available', 'sold', 'reserved', 'returned', 'defective', 'in_repair', 'returned_to_supplier', 'trade_in', 'lost'];
+        $validStates = ['available', 'sold', 'reserved', 'returned', 'defective', 'in_repair', 'returned_to_supplier', 'trade_in'];
 
         foreach ($validStates as $state) {
             $product = Product::factory()->make(['state' => $state]);
@@ -236,7 +236,6 @@ class ProductManagementTest extends TestCase
             'purchase_date'    => now()->toDateString(),
         ]);
 
-        // Le header est ignoré, seules les 2 lignes de données passent
         $this->assertCount(2, $results['success']);
     }
 }

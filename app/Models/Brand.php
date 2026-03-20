@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Brand extends Model
 {
@@ -14,13 +15,21 @@ class Brand extends Model
 
     protected $fillable = [
         'name',
-        'logo_url',
+        'logo_path',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    // ─── Accessor : URL publique du logo ──────────────────────
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo_path
+            ? Storage::url($this->logo_path)
+            : null;
+    }
 
     // ─── Relations ────────────────────────────────────────────
     public function productModels(): HasMany

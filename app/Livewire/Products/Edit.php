@@ -41,6 +41,7 @@ class Edit extends Component
 
     public function mount(Product $product): void
     {
+        abort_if(!auth()->user()->isAdmin(), 403);
         $this->product = $product;
 
         $this->product_model_id         = $product->product_model_id;

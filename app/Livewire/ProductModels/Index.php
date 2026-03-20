@@ -7,13 +7,15 @@ use App\Models\Brand;
 use App\Models\ProductModel;
 use App\Services\ProductModelStatsService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
 
 class Index extends Component
 {
-    use WithPagination, Toast;
+    use WithPagination, Toast, WithFileUploads;
 
     public string $search    = '';
     public string $filterCategory = '';
@@ -30,11 +32,14 @@ class Index extends Component
     public ?int $brand_id       = null;
     public string $model_number = '';
     public string $category     = '';
-    public string $condition = '';
+    public string $condition    = '';
     public string $description  = '';
-    public string $image_url    = '';
     public bool $is_serialized  = true;
     public bool $is_active      = true;
+
+    // ─── Image ───────────────────────────────────────────────
+    public $image                   = null; // fichier temporaire Livewire
+    public ?string $existingImagePath = null; // chemin stocké en base
 
     // Specs communes
     public string $color        = '';
@@ -80,39 +85,37 @@ class Index extends Component
         $rules = [
             'name'      => 'required|string|max:255',
             'brand_id'  => 'required|exists:brands,id',
-            'category' => 'required|in:telephone,pc,tablet,accessory' . (auth()->user()->isAdmin() ? ',sextoys' : ''),
+            'category'  => 'required|in:telephone,pc,tablet,accessory' . (auth()->user()->isAdmin() ? ',sextoys' : ''),
             'is_active' => 'boolean',
+            'image'     => 'nullable|image|max:3072',
             'default_purchase_price'  => 'nullable|numeric|min:0',
             'default_client_price'    => 'nullable|numeric|min:0',
             'default_reseller_price'  => 'nullable|numeric|min:0',
         ];
 
         if (in_array($this->category, ['telephone', 'pc', 'tablet'])) {
+            $rules['condition']  = 'required|in:sealed,refurbished,used';
             $rules['ram_gb']     = 'nullable|integer|min:1';
             $rules['storage_gb'] = 'nullable|integer|min:1';
         }
 
         if ($this->category === 'accessory') {
-            $rules['accessory_type']  = 'required|string|max:100';
-            $rules['quantity_stock']  = 'required|integer|min:0';
-            $rules['stock_minimum']   = 'required|integer|min:0';
-        }
-
-        if (in_array($this->category, ['telephone', 'pc', 'tablet'])) {
-            $rules['condition'] = 'required|in:sealed,refurbished,used';  // ← AJOUTER
-            $rules['ram_gb']     = 'nullable|integer|min:1';
-            $rules['storage_gb'] = 'nullable|integer|min:1';
+            $rules['accessory_type'] = 'required|string|max:100';
+            $rules['quantity_stock'] = 'required|integer|min:0';
+            $rules['stock_minimum']  = 'required|integer|min:0';
         }
 
         return $rules;
     }
 
     protected $messages = [
-        'name.required'         => 'Le nom est obligatoire.',
-        'brand_id.required'     => 'La marque est obligatoire.',
-        'category.required'     => 'La catégorie est obligatoire.',
-        'condition.required' => 'La condition est obligatoire.',
-        'accessory_type.required' => 'Le type d\'accessoire est obligatoire.',
+        'name.required'           => 'Le nom est obligatoire.',
+        'brand_id.required'       => 'La marque est obligatoire.',
+        'category.required'       => 'La catégorie est obligatoire.',
+        'condition.required'      => 'La condition est obligatoire.',
+        'accessory_type.required' => "Le type d'accessoire est obligatoire.",
+        'image.image'             => "Le fichier doit être une image.",
+        'image.max'               => "L'image ne doit pas dépasser 3 Mo.",
     ];
 
     public string $selectedCategory = '';
@@ -154,7 +157,6 @@ class Index extends Component
         $this->resetPage();
     }
 
-    // ─── Quand la catégorie change, ajuster is_serialized ─────
     public function updatedCategory(): void
     {
         $this->is_serialized = $this->category !== 'accessory';
@@ -175,10 +177,11 @@ class Index extends Component
         $this->model_number           = $model->model_number ?? '';
         $this->category               = $model->category->value;
         $this->description            = $model->description ?? '';
-        $this->image_url              = $model->image_url ?? '';
+        $this->existingImagePath      = $model->image_path;
+        $this->image                  = null;
         $this->is_serialized          = $model->is_serialized;
         $this->is_active              = $model->is_active;
-        $this->condition = $model->condition?->value ?? '';
+        $this->condition              = $model->condition?->value ?? '';
         $this->color                  = $model->color ?? '';
         $this->ram_gb                 = $model->ram_gb;
         $this->storage_gb             = $model->storage_gb;
@@ -207,11 +210,32 @@ class Index extends Component
         $this->showModal              = true;
     }
 
+    // ─── Supprimer l'image existante ─────────────────────────
+    public function removeImage(): void
+    {
+        if ($this->existingImagePath) {
+            Storage::disk('public')->delete($this->existingImagePath);
+            $this->existingImagePath = null;
+            if ($this->editingId) {
+                ProductModel::findOrFail($this->editingId)->update(['image_path' => null]);
+            }
+        }
+    }
+
     public function save(): void
     {
         $this->validate();
 
         $isEditing = (bool) $this->editingId;
+
+        // ─── Gestion image ────────────────────────────────────
+        $imagePath = $this->existingImagePath;
+        if ($this->image) {
+            if ($this->existingImagePath) {
+                Storage::disk('public')->delete($this->existingImagePath);
+            }
+            $imagePath = $this->image->store('product-models/images', 'public');
+        }
 
         $data = [
             'name'                    => $this->name,
@@ -220,7 +244,7 @@ class Index extends Component
             'category'                => $this->category,
             'condition'               => $this->condition ?: null,
             'description'             => $this->description ?: null,
-            'image_url'               => $this->image_url ?: null,
+            'image_path'              => $imagePath,
             'is_serialized'           => $this->is_serialized,
             'is_active'               => $this->is_active,
             'color'                   => $this->color ?: null,
@@ -253,7 +277,6 @@ class Index extends Component
         if ($this->editingId) {
             $model = ProductModel::findOrFail($this->editingId);
 
-            // Historique des prix si changement
             if (
                 $model->default_purchase_price != $this->default_purchase_price ||
                 $model->default_client_price   != $this->default_client_price ||
@@ -301,6 +324,11 @@ class Index extends Component
             return;
         }
 
+        // Supprimer l'image associée
+        if ($model->image_path) {
+            Storage::disk('public')->delete($model->image_path);
+        }
+
         $model->delete();
         $this->success('Modèle supprimé.');
         $this->showDeleteModal = false;
@@ -317,7 +345,8 @@ class Index extends Component
             'category',
             'condition',
             'description',
-            'image_url',
+            'image',
+            'existingImagePath',
             'color',
             'ram_gb',
             'storage_gb',
@@ -351,11 +380,11 @@ class Index extends Component
     public function headers(): array
     {
         return [
-            ['key' => 'full_name',  'label' => 'Modèle',      'sortable' => false],
-            ['key' => 'condition',  'label' => 'Condition',   'sortable' => true],
-            ['key' => 'category',   'label' => 'Catégorie',   'sortable' => true],
-            ['key' => 'stock',      'label' => 'Stock',        'sortable' => false],
-            ['key' => 'is_active',  'label' => 'Statut',       'sortable' => true],
+            ['key' => 'full_name', 'label' => 'Modèle',    'sortable' => false],
+            ['key' => 'condition', 'label' => 'Condition',  'sortable' => true],
+            ['key' => 'category',  'label' => 'Catégorie',  'sortable' => true],
+            ['key' => 'stock',     'label' => 'Stock',      'sortable' => false],
+            ['key' => 'is_active', 'label' => 'Statut',     'sortable' => true],
         ];
     }
 
@@ -370,21 +399,9 @@ class Index extends Component
 
         $productModels = ProductModel::with('brand')
             ->when(!auth()->user()->isAdmin(), fn($q) => $q->where('category', '!=', 'sextoys'))
-            ->when(
-                $this->search,
-                fn($q) =>
-                $q->where('name', 'like', '%' . $this->search . '%')
-            )
-            ->when(
-                $this->selectedCategory,
-                fn($q) =>    // ← AJOUTER
-                $q->where('category', $this->selectedCategory)
-            )
-            ->when(
-                $this->filterBrand,
-                fn($q) =>
-                $q->where('brand_id', $this->filterBrand)
-            )
+            ->when($this->search, fn($q) => $q->where('name', 'like', '%' . $this->search . '%'))
+            ->when($this->selectedCategory, fn($q) => $q->where('category', $this->selectedCategory))
+            ->when($this->filterBrand, fn($q) => $q->where('brand_id', $this->filterBrand))
             ->orderBy($this->sortBy['column'], $this->sortBy['direction'])
             ->paginate(15);
 

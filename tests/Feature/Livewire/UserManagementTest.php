@@ -18,12 +18,14 @@ class UserManagementTest extends TestCase
 
     public function test_vendeur_cannot_access_users_page(): void
     {
+        $this->withExceptionHandling();
         $this->actingAsVendeur();
         $this->get(route('users.index'))->assertStatus(403);
     }
 
     public function test_guest_cannot_access_users_page(): void
     {
+        $this->withExceptionHandling();
         $this->get(route('users.index'))->assertRedirect(route('login'));
     }
 
@@ -60,7 +62,7 @@ class UserManagementTest extends TestCase
 
     public function test_admin_can_deactivate_user(): void
     {
-        $admin  = $this->createAdmin();
+        $admin   = $this->createAdmin();
         $vendeur = $this->createVendeur();
         $this->actingAs($admin);
 
@@ -82,12 +84,14 @@ class UserManagementTest extends TestCase
 
     public function test_deactivated_user_cannot_login(): void
     {
+        $this->withExceptionHandling();
+
         $user = User::factory()->create([
             'password'  => bcrypt('password123'),
             'is_active' => false,
         ]);
 
-        $response = $this->post(route('login'), [
+        $response = $this->post('/login', [
             'email'    => $user->email,
             'password' => 'password123',
         ]);
@@ -123,6 +127,8 @@ class UserManagementTest extends TestCase
 
     public function test_deleted_user_cannot_login(): void
     {
+        $this->withExceptionHandling();
+
         $user = User::factory()->create([
             'password'  => bcrypt('password123'),
             'is_active' => true,
@@ -130,7 +136,7 @@ class UserManagementTest extends TestCase
 
         $user->delete();
 
-        $response = $this->post(route('login'), [
+        $response = $this->post('/login', [
             'email'    => $user->email,
             'password' => 'password123',
         ]);
