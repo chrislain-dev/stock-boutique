@@ -383,13 +383,23 @@
                             ? $row['type']
                             : \App\Enums\StockMovementType::from($row['type']);
                 $pct   = $stockStats['total'] > 0 ? round(($row['count'] / $stockStats['total']) * 100) : 0;
-                $isPos = $type->isPositive();
+                $barColors = [
+                    'stock_in'        => '#3B6D11',
+                    'sale_out'        => '#2563EB',
+                    'client_return'   => '#0ea5e9',
+                    'supplier_return' => '#854F0B',
+                    'transfer'        => '#7c3aed',
+                    'adjustment'      => '#f59e0b',
+                    'loss'            => '#DC2626',
+                    'trade_in'        => '#f97316',
+                ];
+                $barColor = $barColors[$type->value] ?? '#d1d5db';
             @endphp
             <div class="flex items-center gap-3 mb-3.5">
                 <span class="text-sm text-gray-700 w-36 shrink-0">{{ $type->label() }}</span>
                 <div class="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div class="h-2 rounded-full transition-all duration-500 {{ $isPos ? 'bg-green-600' : 'bg-red-500' }}"
-                         style="width: {{ $pct }}%"></div>
+                    <div class="h-2 rounded-full transition-all duration-500"
+                        style="width: {{ $pct }}%; background-color: {{ $barColor }}"></div>
                 </div>
                 <span class="text-sm font-semibold text-gray-900 min-w-8 text-right">{{ $row['count'] }}</span>
             </div>
@@ -548,19 +558,40 @@
 
             // ── Stock ───────────────────────────────────────────────
             if (activeTab === 'stock') {
+                const colorMap = {
+                    'stock_in':        '#3B6D11',  // vert foncé   — entrée
+                    'sale_out':        '#2563EB',  // bleu          — vente
+                    'client_return':   '#0ea5e9',  // bleu clair    — retour client
+                    'supplier_return': '#854F0B',  // marron        — retour fournisseur
+                    'transfer':        '#7c3aed',  // violet        — transfert
+                    'adjustment':      '#f59e0b',  // amber         — ajustement
+                    'loss':            '#DC2626',  // rouge foncé   — perte
+                    'trade_in':        '#f97316',  // orange        — reprise
+                };
+
+                const stockRows  = @json($stockStats['rows']);
+                const stockTypes = stockRows.map(r => typeof r.type === 'string' ? r.type : r.type.value);
+                const stockLabels = @json($stockStats['rows']->map(fn($r) => ($r['type'] instanceof \App\Enums\StockMovementType ? $r['type'] : \App\Enums\StockMovementType::from($r['type']))->label()));
+
                 makeChart('stockChart', {
                     type: 'doughnut',
                     data: {
-                        labels: @json($stockStats['rows']->map(fn($r) => ($r['type'] instanceof \App\Enums\StockMovementType ? $r['type'] : \App\Enums\StockMovementType::from($r['type']))->label())),
+                        labels: stockLabels,
                         datasets: [{
                             data: @json($stockStats['rows']->pluck('count')),
-                            backgroundColor: ['#3B6D11','#2563EB','#0ea5e9','#854F0B','#DC2626','#f87171','#a78bfa'],
-                            borderWidth: 0, hoverOffset: 4
+                            backgroundColor: stockTypes.map(t => colorMap[t] ?? '#d1d5db'),
+                            borderWidth: 0,
+                            hoverOffset: 4,
                         }]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { position: 'right', labels: { boxWidth: 10, padding: 14, font: { size: 12 } } } },
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { boxWidth: 10, padding: 14, font: { size: 12 } }
+                            }
+                        },
                         cutout: '65%'
                     }
                 });

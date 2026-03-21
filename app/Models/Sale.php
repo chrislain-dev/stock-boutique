@@ -47,38 +47,14 @@ class Sale extends Model
     {
         static::creating(function (Sale $sale) {
             $sale->reference = static::generateReference();
-            // Calcul automatique du statut paiement initial
             $sale->payment_status = static::computePaymentStatus(
                 $sale->paid_amount,
                 $sale->total_amount
             );
         });
 
-        static::updating(function (Sale $sale) {
-            // Validation: paid_amount must not exceed total_amount
-            if ($sale->paid_amount > $sale->total_amount) {
-                throw new \Exception(
-                    "Le montant payé ({$sale->paid_amount}) ne peut pas dépasser le montant total ({$sale->total_amount})."
-                );
-            }
-
-            // Validation: paid_amount must be non-negative
-            if ($sale->paid_amount < 0) {
-                throw new \Exception('Le montant payé doit être positif ou zéro.');
-            }
-
-            // Validation: total_amount must be positive
-            if ($sale->total_amount <= 0) {
-                throw new \Exception('Le montant total doit être positif.');
-            }
-
-            $sale->payment_status = static::computePaymentStatus(
-                $sale->paid_amount,
-                $sale->total_amount
-            );
-
-            // Mettre à jour le solde dû du revendeur
-            if ($sale->isDirty('paid_amount') && $sale->reseller_id) {
+        static::created(function (Sale $sale) {
+            if ($sale->reseller_id && $sale->payment_status !== PaymentStatus::PAID) {
                 $sale->reseller->update([
                     'solde_du' => $sale->reseller->sales()
                         ->where('payment_status', '!=', PaymentStatus::PAID->value)
@@ -88,19 +64,33 @@ class Sale extends Model
         });
 
         static::saving(function (Sale $sale) {
-            // Validation on both create and update
             if ($sale->paid_amount > $sale->total_amount) {
                 throw new \Exception(
                     "Le montant payé ({$sale->paid_amount}) ne peut pas dépasser le montant total ({$sale->total_amount})."
                 );
             }
-
             if ($sale->paid_amount < 0) {
                 throw new \Exception('Le montant payé doit être positif ou zéro.');
             }
-
             if ($sale->total_amount <= 0) {
                 throw new \Exception('Le montant total doit être positif.');
+            }
+        });
+
+        static::updating(function (Sale $sale) {
+            $sale->payment_status = static::computePaymentStatus(
+                $sale->paid_amount,
+                $sale->total_amount
+            );
+        });
+
+        static::updated(function (Sale $sale) {
+            if ($sale->wasChanged('paid_amount') && $sale->reseller_id) {
+                $sale->reseller->update([
+                    'solde_du' => $sale->reseller->sales()
+                        ->where('payment_status', '!=', PaymentStatus::PAID->value)
+                        ->sum(DB::raw('total_amount - paid_amount')),
+                ]);
             }
         });
     }

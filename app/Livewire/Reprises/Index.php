@@ -70,8 +70,8 @@ class Index extends Component
 
         DB::transaction(function () use ($product) {
             $product->update([
-                'location'       => ProductLocation::STORE->value,
-                'state'          => ProductState::AVAILABLE->value,
+                'location'       => ProductLocation::STORE->value,  // physiquement en boutique
+                'state'          => ProductState::TRADE_IN->value,  // ← reste dans card Reprise
                 'condition'      => $this->store_condition,
                 'client_price'   => (int) $this->store_client_price,
                 'reseller_price' => (int) $this->store_reseller_price,
